@@ -46,7 +46,6 @@ const App: React.FC = () => {
   });
   
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
-  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     const savedCourses = localStorage.getItem('study_portal_courses');
@@ -113,14 +112,6 @@ const App: React.FC = () => {
     }
   };
 
-  const copyToClipboard = () => {
-    if (revealedKey) {
-      navigator.clipboard.writeText(revealedKey);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    }
-  };
-
   const isStaff = user?.role === 'admin' || user?.role === 'manager';
 
   const downloadNote = (resource: Resource) => {
@@ -134,7 +125,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FDFEFE] selection:bg-blue-600 selection:text-white flex">
-      {/* Sidebar remains the same */}
       <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-slate-200 z-50 transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="p-6 h-full flex flex-col">
           <div className="flex items-center gap-3 mb-10 px-2 cursor-pointer" onClick={() => setActiveView('home')}>
@@ -142,22 +132,22 @@ const App: React.FC = () => {
             <span className="text-xl font-black text-slate-900 tracking-tighter">STUDY PORTAL</span>
           </div>
 
-          <div className="space-y-2 flex-1 text-left">
-            <SidebarItem icon={<Home size={20}/>} label="Academic Hub" active={activeView === 'home'} onClick={() => {setActiveView('home'); setIsSidebarOpen(false);}} />
-            <SidebarItem icon={<BookOpen size={20}/>} label="My Courses" active={activeView === 'course'} onClick={() => {setActiveView('course'); setIsSidebarOpen(false);}} />
-            <SidebarItem icon={<UserIcon size={20}/>} label="My Profile" active={activeView === 'profile'} onClick={() => {setActiveView('profile'); setIsSidebarOpen(false);}} />
+          <div className="space-y-2 flex-1">
+            <SidebarItem icon={<Home size={20}/>} label="Home Dashboard" active={activeView === 'home'} onClick={() => {setActiveView('home'); setIsSidebarOpen(false);}} />
+            <SidebarItem icon={<BookOpen size={20}/>} label="My Enrollments" active={activeView === 'course'} onClick={() => {setActiveView('course'); setIsSidebarOpen(false);}} />
+            <SidebarItem icon={<UserIcon size={20}/>} label="Student Profile" active={activeView === 'profile'} onClick={() => {setActiveView('profile'); setIsSidebarOpen(false);}} />
             
             {isStaff && (
-               <div className="mt-8 pt-8 border-t border-slate-100 text-left">
-                 <p className="text-[10px] uppercase font-black text-slate-400 px-4 mb-4 tracking-widest">Staff Center</p>
-                 <SidebarItem icon={<Settings size={20}/>} label={user?.role === 'admin' ? 'Administration' : 'Faculty Panel'} active={activeView === 'admin'} onClick={() => {setActiveView('admin'); setIsSidebarOpen(false);}} />
+               <div className="mt-8 pt-8 border-t border-slate-100">
+                 <p className="text-[10px] uppercase font-black text-slate-400 px-4 mb-4 tracking-widest">Administration</p>
+                 <SidebarItem icon={<Settings size={20}/>} label="Control Panel" active={activeView === 'admin'} onClick={() => {setActiveView('admin'); setIsSidebarOpen(false);}} />
                </div>
             )}
           </div>
 
           {user && (
             <div className="pt-8 mt-auto border-t border-slate-50">
-              <SidebarItem icon={<LogOut size={20}/>} label="End Session" active={false} onClick={handleLogout} />
+              <SidebarItem icon={<LogOut size={20}/>} label="Logout Session" active={false} onClick={handleLogout} />
             </div>
           )}
         </div>
@@ -170,21 +160,21 @@ const App: React.FC = () => {
               <Menu size={20} />
             </button>
             <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 bg-slate-50 border border-slate-100 rounded-full text-[11px] font-black text-slate-400 uppercase tracking-widest">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Academic Session Active
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Network Status: Online
             </div>
           </div>
 
           <div className="flex items-center gap-4">
              {!user ? (
-                <button onClick={() => setIsAuthModalOpen(true)} className="bg-slate-900 text-white px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 shadow-lg transition-all">Login</button>
+                <button onClick={() => setIsAuthModalOpen(true)} className="bg-slate-900 text-white px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 shadow-lg transition-all">Sign In</button>
              ) : (
                 <div className="flex items-center gap-4">
                   <div className="text-right hidden sm:block">
                     <p className="text-xs font-black text-slate-900 leading-none">{user.name}</p>
                     <p className="text-[10px] font-bold text-blue-600 uppercase tracking-tighter mt-1">{user.role}</p>
                   </div>
-                  <div className="w-9 h-9 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-center text-slate-600 shadow-inner">
-                    <UserIcon size={18} />
+                  <div className="w-10 h-10 bg-slate-100 border border-slate-200 rounded-2xl flex items-center justify-center text-slate-600 shadow-inner">
+                    <UserIcon size={20} />
                   </div>
                 </div>
              )}
@@ -195,39 +185,46 @@ const App: React.FC = () => {
           <div className="max-w-7xl mx-auto">
             {activeView === 'home' && (
               <div className="space-y-12 animate-fadeIn text-left">
-                <section className="bg-slate-900 rounded-[3rem] p-10 md:p-16 text-white relative overflow-hidden group">
+                <section className="bg-slate-900 rounded-[3.5rem] p-10 md:p-16 text-white relative overflow-hidden group">
                   <div className="absolute top-0 right-0 p-12 opacity-5 scale-150 rotate-12 transition-transform duration-700 group-hover:scale-[1.6]">
                     <GraduationCap size={240} />
                   </div>
-                  <div className="relative z-10 max-w-2xl text-left">
+                  <div className="relative z-10 max-w-2xl">
                     <div className="inline-flex items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest mb-8">
-                      Class 9 & 10 Advanced
+                      Premier Academic Portal
                     </div>
                     <h1 className="text-4xl md:text-7xl font-black leading-[1.05] mb-8 tracking-tighter">
-                      The Future of <br/>Academic <span className="text-blue-500">Excellence.</span>
+                      Learn from the <br/><span className="text-blue-500 italic">Best Educators.</span>
                     </h1>
-                    <p className="text-slate-400 text-lg font-medium leading-relaxed mb-10 max-w-lg">Access elite study modules, AI-powered doubt solving, and structured curriculum designed for top performance.</p>
+                    <p className="text-slate-400 text-lg font-medium leading-relaxed mb-10 max-w-lg">Experience elite study modules, high-definition lecture streaming, and AI-powered academic support tailored for Class 9-12 success.</p>
                   </div>
                 </section>
 
                 <section>
-                   <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-10">Enrolled Learning Modules</h2>
+                   <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-10 px-2">Featured Batches</h2>
                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
                     {courses.map(course => (
-                      <div key={course.id} className="bg-white rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-slate-100 cursor-pointer flex flex-col" onClick={() => navigateToCourse(course)}>
+                      <div key={course.id} className="bg-white rounded-[3rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-slate-100 cursor-pointer flex flex-col group" onClick={() => navigateToCourse(course)}>
                         <div className="relative aspect-video overflow-hidden">
-                          <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
+                          <img src={course.image} alt={course.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
                         </div>
                         <div className="p-8 flex-1 flex flex-col">
+                          <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2">{course.category}</div>
                           <h3 className="font-black text-2xl text-slate-900 mb-2 leading-tight tracking-tight">{course.title}</h3>
-                          <p className="text-slate-500 text-sm font-medium mb-10">{course.instructor}</p>
+                          <p className="text-slate-500 text-sm font-medium mb-10">Expert Faculty: {course.instructor}</p>
                           <div className="mt-auto flex items-center justify-between pt-6 border-t border-slate-50">
                             <span className="text-2xl font-black text-slate-900">₹{course.price}</span>
-                            <button className="bg-slate-900 text-white px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl">Engage</button>
+                            <button className="bg-slate-900 text-white px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl">Engage Batch</button>
                           </div>
                         </div>
                       </div>
                     ))}
+                    {courses.length === 0 && (
+                      <div className="col-span-full py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
+                        <p className="text-slate-400 font-bold">No active batches found. Please check the Admin Panel.</p>
+                      </div>
+                    )}
                   </div>
                 </section>
               </div>
@@ -236,15 +233,22 @@ const App: React.FC = () => {
             {activeView === 'course' && selectedCourse && (
               <div className="animate-fadeIn max-w-4xl mx-auto text-left">
                  <div className="flex items-center gap-4 mb-10">
-                    <button onClick={() => setActiveView('home')} className="p-2 hover:bg-slate-100 rounded-xl transition-colors"><ChevronRight size={24} className="rotate-180"/></button>
-                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">{selectedCourse.title}</h1>
+                    <button onClick={() => setActiveView('home')} className="p-3 hover:bg-slate-100 rounded-2xl transition-colors"><ChevronRight size={24} className="rotate-180 text-slate-400"/></button>
+                    <div>
+                      <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none">{selectedCourse.title}</h1>
+                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-2">Active Enrollment</p>
+                    </div>
                  </div>
                  
                  <div className="flex border-b border-slate-200 mb-10 gap-8 overflow-x-auto whitespace-nowrap scrollbar-hide">
-                    {['Subjects', 'Description', 'Resources'].map(tab => (
-                      <button key={tab} onClick={() => {setCourseTab(tab.toLowerCase() as any); setSelectedChapter(null);}} className={`pb-4 px-2 text-sm font-black transition-all relative ${courseTab === tab.toLowerCase() ? 'text-blue-600' : 'text-slate-400 hover:text-slate-800'}`}>
-                        {tab}
-                        {courseTab === tab.toLowerCase() && <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-blue-600 rounded-t-full shadow-[0_-2px_8px_rgba(37,99,235,0.4)]"></div>}
+                    {[
+                      {id: 'subjects', label: 'Curriculum'}, 
+                      {id: 'description', label: 'Details'}, 
+                      {id: 'resources', label: 'Study Notes'}
+                    ].map(tab => (
+                      <button key={tab.id} onClick={() => {setCourseTab(tab.id as any); setSelectedChapter(null);}} className={`pb-4 px-2 text-sm font-black transition-all relative ${courseTab === tab.id ? 'text-blue-600' : 'text-slate-400 hover:text-slate-800'}`}>
+                        {tab.label}
+                        {courseTab === tab.id && <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-blue-600 rounded-t-full shadow-[0_-2px_8px_rgba(37,99,235,0.4)]"></div>}
                       </button>
                     ))}
                  </div>
@@ -253,35 +257,36 @@ const App: React.FC = () => {
                    <div className="animate-fadeIn space-y-6">
                       {selectedChapter ? (
                         <div className="space-y-6">
-                           <button onClick={() => setSelectedChapter(null)} className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline mb-4 block">← Return to subject list</button>
+                           <button onClick={() => setSelectedChapter(null)} className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline mb-4 flex items-center gap-1">← Return to subject list</button>
                            <h2 className="text-xl font-black text-slate-900 mb-8">{selectedChapter.title} Lectures</h2>
                            <div className="grid gap-5">
                              {selectedChapter.videos.map(v => (
-                               <button key={v.id} onClick={() => attemptVideoAccess(v, selectedCourse)} className="w-full flex items-center gap-6 p-6 bg-white border border-slate-100 rounded-[2rem] hover:shadow-xl transition-all group text-left">
-                                  <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0 border border-blue-100"><PlayCircle size={32} /></div>
+                               <button key={v.id} onClick={() => attemptVideoAccess(v, selectedCourse)} className="w-full flex items-center gap-6 p-6 bg-white border border-slate-100 rounded-[2.5rem] hover:shadow-xl transition-all group text-left">
+                                  <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-[1.5rem] flex items-center justify-center shrink-0 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all"><PlayCircle size={32} /></div>
                                   <div className="flex-1">
-                                    <h4 className="font-black text-slate-900 text-lg tracking-tight">{v.title}</h4>
+                                    <h4 className="font-black text-slate-900 text-lg tracking-tight group-hover:text-blue-600 transition-colors">{v.title}</h4>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 flex items-center gap-2"><Clock size={12}/> Academic Session • {v.duration}</p>
                                   </div>
-                                  <ChevronRight size={20} className="text-slate-300 group-hover:text-blue-600 transition-all"/>
+                                  <ChevronRight size={20} className="text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all"/>
                                </button>
                              ))}
+                             {selectedChapter.videos.length === 0 && <p className="text-center py-10 text-slate-400 font-bold">No lectures uploaded in this subject yet.</p>}
                            </div>
                         </div>
                       ) : (
                         <div className="grid gap-5">
                           {selectedCourse.chapters.map(ch => (
-                            <button key={ch.id} onClick={() => setSelectedChapter(ch)} className="w-full flex items-center gap-6 p-6 bg-white border border-slate-100 rounded-[2.5rem] hover:shadow-xl transition-all group text-left">
-                               <div className="w-16 h-16 bg-slate-50 text-slate-900 font-black text-xl rounded-2xl flex items-center justify-center border border-slate-100 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                                 {ch.title.substring(0, 2).toUpperCase()}
+                            <button key={ch.id} onClick={() => setSelectedChapter(ch)} className="w-full flex items-center gap-6 p-6 bg-white border border-slate-100 rounded-[3rem] hover:shadow-xl transition-all group text-left">
+                               <div className="w-16 h-16 bg-slate-50 text-slate-900 font-black text-xl rounded-3xl flex items-center justify-center border border-slate-100 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                 {ch.title.substring(0, 1).toUpperCase()}
                                </div>
                                <div className="flex-1">
                                  <h4 className="font-black text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{ch.title}</h4>
                                  <div className="flex items-center gap-4 mt-3">
-                                   <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-50">
-                                      <div className="h-full bg-slate-300 w-0"></div>
+                                   <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                      <div className="h-full bg-blue-500 w-0"></div>
                                    </div>
-                                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">0% Completed</span>
+                                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enrollment Status: Active</span>
                                  </div>
                                </div>
                                <ChevronRight size={20} className="text-slate-300 group-hover:text-blue-600 transition-all"/>
@@ -294,38 +299,41 @@ const App: React.FC = () => {
 
                  {courseTab === 'resources' && (
                    <div className="animate-fadeIn space-y-10">
-                      <div className="bg-blue-600 p-10 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-blue-500/20">
-                        <div>
-                           <h2 className="text-2xl font-black mb-2 tracking-tight">Academic Resources</h2>
-                           <p className="text-blue-100 text-sm font-medium max-w-md">Download notes, assignment PDFs, and supplementary materials curated by our expert faculty for your success.</p>
+                      <div className="bg-blue-600 p-12 rounded-[3.5rem] text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl shadow-blue-500/25 overflow-hidden relative">
+                        <div className="absolute top-0 right-0 p-10 opacity-10">
+                          <FileText size={160} />
                         </div>
-                        <div className="w-20 h-20 bg-white/10 rounded-[2.5rem] flex items-center justify-center border border-white/20"><Download size={32} /></div>
+                        <div className="relative z-10">
+                           <h2 className="text-3xl font-black mb-2 tracking-tight">Academic Vault</h2>
+                           <p className="text-blue-100 text-sm font-medium max-w-sm">Access exclusive chapter-wise notes, PDFs, and assignments curated for competitive excellence.</p>
+                        </div>
+                        <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-[2.5rem] flex items-center justify-center border border-white/20 shadow-inner relative z-10"><Download size={36} /></div>
                       </div>
 
-                      <div className="grid gap-4">
-                        {selectedCourse.chapters.flatMap(ch => (ch.notes || []).map(note => ({...note, chapterTitle: ch.title}))).length === 0 ? (
-                           <div className="py-20 text-center bg-white rounded-[2.5rem] border-2 border-dashed border-slate-100">
-                             <FileText className="mx-auto text-slate-200 mb-4" size={56} />
-                             <p className="text-slate-400 font-bold">No resources available for this batch yet.</p>
+                      <div className="grid gap-6">
+                        {selectedCourse.chapters.every(ch => !ch.notes || ch.notes.length === 0) ? (
+                           <div className="py-24 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
+                             <FileText className="mx-auto text-slate-200 mb-4" size={64} />
+                             <p className="text-slate-400 font-bold">The Academic Vault is currently empty for this batch.</p>
                            </div>
                         ) : (
                           selectedCourse.chapters.map(ch => (
                             ch.notes && ch.notes.length > 0 && (
                               <div key={ch.id} className="space-y-4">
-                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{ch.title} - Materials</h3>
+                                <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-4">{ch.title} Study Material</h3>
                                 {ch.notes.map(note => (
-                                  <div key={note.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center justify-between group hover:shadow-xl transition-all">
-                                    <div className="flex items-center gap-5">
-                                      <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                                        <FileText size={24} />
+                                  <div key={note.id} className="bg-white p-7 rounded-[2.5rem] border border-slate-100 flex flex-col sm:flex-row items-center justify-between group hover:shadow-2xl transition-all gap-4">
+                                    <div className="flex items-center gap-6">
+                                      <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm shrink-0">
+                                        <FileText size={28} />
                                       </div>
-                                      <div>
-                                        <h4 className="font-black text-slate-900 text-base">{note.title}</h4>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Academic Reference • PDF Document</p>
+                                      <div className="text-center sm:text-left">
+                                        <h4 className="font-black text-slate-900 text-lg leading-tight">{note.title}</h4>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase mt-1 tracking-widest flex items-center gap-2"><Check size={12}/> Verified Academic Reference • PDF</p>
                                       </div>
                                     </div>
-                                    <button onClick={() => downloadNote(note)} className="bg-slate-50 text-slate-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2">
-                                      <Download size={16} /> Download
+                                    <button onClick={() => downloadNote(note)} className="w-full sm:w-auto bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95">
+                                      <Download size={18} /> Download Material
                                     </button>
                                   </div>
                                 ))}
@@ -346,12 +354,13 @@ const App: React.FC = () => {
                 </button>
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                   <div className="lg:col-span-8 space-y-8">
-                    {/* CRITICAL: The key prop here forces VideoPlayer to re-mount when video changes */}
+                    {/* CRITICAL: Key ensures the player re-mounts on video change */}
                     <VideoPlayer key={selectedVideo.youtubeId} videoId={selectedVideo.youtubeId} title={selectedVideo.title} />
-                    <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100">
-                      <h1 className="text-3xl font-black text-slate-900 mb-6 tracking-tight leading-tight">{selectedVideo.title}</h1>
+                    <div className="bg-white p-12 rounded-[3.5rem] shadow-sm border border-slate-100 relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
+                      <h1 className="text-4xl font-black text-slate-900 mb-6 tracking-tight leading-tight">{selectedVideo.title}</h1>
                       <div className="prose prose-slate max-w-none">
-                        <p className="text-slate-500 text-lg leading-relaxed font-medium">This professional academic session covers the primary conceptual frameworks required for Class 9/10 Mastery.</p>
+                        <p className="text-slate-500 text-lg leading-relaxed font-medium">This lecture focuses on the fundamental concepts of the current subject. Use the AI Doubt Solver to clarify any misconceptions in real-time.</p>
                       </div>
                     </div>
                   </div>
@@ -362,7 +371,6 @@ const App: React.FC = () => {
               </div>
             )}
             
-            {/* Rest of view logic (profile, admin) remains the same */}
             {activeView === 'profile' && user && (
               <ProfileSection 
                 user={user as any} 
@@ -394,7 +402,6 @@ const App: React.FC = () => {
           courses={courses}
         />
       )}
-      {/* Revealed key modal remains the same */}
     </div>
   );
 };
