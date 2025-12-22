@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import Plyr styles */
+/* Import Plyr styles from node_modules */
 @import 'plyr/dist/plyr.css';
 
 :root {
@@ -27,15 +27,35 @@
   background: #94a3b8;
 }
 
-/* Plyr Customizations */
+/* Professional Plyr Customizations */
 .plyr--video {
   border-radius: 2.5rem;
   overflow: hidden;
   --plyr-color-main: #2563eb;
   --plyr-video-background: #000;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.plyr__video-wrapper {
+  background: #000 !important;
 }
 
 .plyr__controls {
   padding: 1.5rem !important;
-  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent) !important;
+  background: linear-gradient(to top, rgba(0,0,0,0.9), transparent) !important;
+  border-bottom-left-radius: 2.5rem;
+  border-bottom-right-radius: 2.5rem;
+}
+
+.plyr--full-ui input[type=range] {
+  color: #2563eb;
+}
+
+.plyr__control--overlaid {
+  background: rgba(37, 99, 235, 0.9) !important;
+  padding: 2rem !important;
+}
+
+.plyr__video-embed iframe {
+  transform: scale(1.01); /* Prevent edge bleeding */
 }
