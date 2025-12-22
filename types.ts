@@ -1,3 +1,9 @@
+export interface Resource {
+  id: string;
+  title: string;
+  url: string; // Can be a URL or Base64 string
+  type: 'pdf' | 'link' | 'image';
+}
 
 export interface Video {
   id: string;
@@ -13,6 +19,7 @@ export interface Chapter {
   id: string;
   title: string;
   videos: Video[];
+  notes?: Resource[];
   progress?: number; // 0-100
 }
 
