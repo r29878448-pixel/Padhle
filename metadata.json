@@ -1,0 +1,8 @@
+{
+  "name": "Study Portal",
+  "description": "A professional educational platform for video-based learning with AI-powered doubt solving and custom playback controls.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

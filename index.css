@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import Plyr styles */
+@import 'plyr/dist/plyr.css';
+
+:root {
+  font-family: 'Inter', sans-serif;
+  background-color: #f8fafc;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Plyr Customizations */
+.plyr--video {
+  border-radius: 2.5rem;
+  overflow: hidden;
+  --plyr-color-main: #2563eb;
+  --plyr-video-background: #000;
+}
+
+.plyr__controls {
+  padding: 1.5rem !important;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent) !important;
+}
