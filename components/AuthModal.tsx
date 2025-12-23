@@ -26,13 +26,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess })
     setError('');
     setIsLoading(true);
     
+    const inputEmail = formData.email.trim().toLowerCase();
+    const inputPassword = formData.password;
+
     setTimeout(() => {
       // 1. Primary Admin Check
-      if (isLogin && formData.email === PRIMARY_ADMIN.email) {
-        if (formData.password === PRIMARY_ADMIN.password) {
+      if (isLogin && inputEmail === PRIMARY_ADMIN.email.toLowerCase()) {
+        if (inputPassword === PRIMARY_ADMIN.password) {
           onAuthSuccess({
             name: 'Primary Administrator',
-            email: formData.email,
+            email: PRIMARY_ADMIN.email,
             role: 'admin'
           });
           setIsLoading(false);
@@ -48,13 +51,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess })
       const savedStaff = localStorage.getItem('study_portal_staff');
       if (isLogin && savedStaff) {
         const staffList: StaffMember[] = JSON.parse(savedStaff);
-        const matchedMember = staffList.find(s => s.email === formData.email);
+        // Case-insensitive lookup
+        const matchedMember = staffList.find(s => s.email.toLowerCase() === inputEmail);
         
         if (matchedMember) {
-           // Use the stored specific password, or fallback to 'Staff@123' for old accounts that didn't have one set.
+           // Use the stored specific password, or fallback to 'Staff@123'
            const validPassword = matchedMember.password || 'Staff@123';
            
-           if (formData.password === validPassword) {
+           if (inputPassword === validPassword) {
              onAuthSuccess({
                name: matchedMember.name,
                email: matchedMember.email,
@@ -70,16 +74,25 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess })
         }
       }
 
-      // 3. Standard Student Logic
-      if (!isLogin || (isLogin && !formData.email.includes('admin'))) {
+      // 3. Standard Student Logic (Fallback)
+      // Only allow student login if the email was NOT found in the staff list above.
+      // And generally, we don't want "admin" keywords in student emails to prevent confusion, though not strictly required.
+      if (!isLogin || isLogin) { 
+        // Note: In a real app, you would check student DB here. 
+        // For this demo, anyone not recognized as staff is logged in as a student (if not blocked).
+        
+        if (inputEmail.includes('admin') && !inputEmail.includes('student')) {
+           // Prevent accidentally logging in as student if trying to be admin with wrong password
+           setError('Unauthorized access for administrative account.');
+           setIsLoading(false);
+           return;
+        }
+
         onAuthSuccess({
           name: formData.name || 'Student Learner',
-          email: formData.email,
+          email: inputEmail,
           role: 'student'
         });
-        setIsLoading(false);
-      } else {
-        setError('Unauthorized credentials.');
         setIsLoading(false);
       }
     }, 800);

@@ -72,10 +72,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
 
   const handleAddStaff = () => {
     if (!newStaff.name || !newStaff.email || !newStaff.password) return alert("Please fill all fields including password.");
+    
+    // Normalize email to lowercase to prevent login issues
+    const normalizedEmail = newStaff.email.trim().toLowerCase();
+    
+    // Check for duplicate
+    if (staff.some(s => s.email === normalizedEmail)) {
+        alert("This email is already registered.");
+        return;
+    }
+
     const staffMember: StaffMember = {
       id: `staff-${Date.now()}`,
       name: newStaff.name,
-      email: newStaff.email,
+      email: normalizedEmail,
       password: newStaff.password,
       role: newStaff.role,
       joinedAt: new Date().toLocaleDateString()
