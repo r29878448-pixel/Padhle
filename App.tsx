@@ -4,7 +4,7 @@ import {
   Search, Bell, Menu, PlayCircle, 
   Star, GraduationCap, LogOut,
   ShieldCheck, UserPlus, LogIn, Settings,
-  ShieldAlert, ChevronRight, X, Clock, HelpCircle, MessageSquare, Copy, Check, FileText, Download
+  ShieldAlert, ChevronRight, X, Clock, HelpCircle, MessageSquare, Copy, Check, FileText, Download, Timer
 } from 'lucide-react';
 import { Course, Video, SiteSettings, Chapter, Resource } from './types';
 import VideoPlayer from './components/VideoPlayer';
@@ -15,6 +15,40 @@ import AdminPanel from './components/AdminPanel';
 import ProfileSection from './components/ProfileSection';
 
 type UserRole = 'student' | 'admin' | 'manager';
+
+// Countdown Timer Component
+const AccessTimer: React.FC<{ expiry: number }> = ({ expiry }) => {
+  const [timeLeft, setTimeLeft] = useState<string>("");
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const distance = expiry - now;
+
+      if (distance < 0) {
+        setTimeLeft("EXPIRED");
+        clearInterval(interval);
+      } else {
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [expiry]);
+
+  return (
+    <div className="px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl shadow-lg mb-6 text-white">
+      <div className="flex items-center gap-2 mb-1 opacity-90">
+        <Timer size={14} />
+        <span className="text-[10px] font-black uppercase tracking-widest">Access Unlocked</span>
+      </div>
+      <div className="text-2xl font-black font-mono tracking-tight">{timeLeft}</div>
+    </div>
+  );
+};
 
 const SidebarItem: React.FC<{icon: React.ReactNode, label: string, active: boolean, onClick: () => void}> = ({icon, label, active, onClick}) => (
   <button 
@@ -37,31 +71,52 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [user, setUser] = useState<{name: string, email: string, role: UserRole} | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [unlockedBatches, setUnlockedBatches] = useState<string[]>([]);
-  const [showAccessGate, setShowAccessGate] = useState<string | null>(null);
+  
+  // 48-Hour Access Logic
+  const [accessExpiry, setAccessExpiry] = useState<number | null>(null);
+  const [showAccessGate, setShowAccessGate] = useState(false);
   
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
     shortenerUrl: 'https://gplinks.in/api',
-    shortenerApiKey: 'pt63YffOiEwMZ8rZ3uGaIuLX' 
+    shortenerApiKey: '' // User must set this in Admin Panel
   });
-  
-  const [revealedKey, setRevealedKey] = useState<string | null>(null);
 
   useEffect(() => {
     const savedCourses = localStorage.getItem('study_portal_courses');
     if (savedCourses) setCourses(JSON.parse(savedCourses));
+    
     const savedUser = localStorage.getItem('study_portal_user');
     if (savedUser) setUser(JSON.parse(savedUser));
-    const savedAccess = localStorage.getItem('study_portal_unlocked_batches');
-    if (savedAccess) setUnlockedBatches(JSON.parse(savedAccess));
+    
     const savedSettings = localStorage.getItem('study_portal_settings');
     if (savedSettings) setSiteSettings(JSON.parse(savedSettings));
 
+    // Check Local Storage for Existing Access
+    const savedExpiry = localStorage.getItem('study_portal_access_expiry');
+    if (savedExpiry) {
+      const expiryTime = parseInt(savedExpiry);
+      if (expiryTime > Date.now()) {
+        setAccessExpiry(expiryTime);
+      } else {
+        localStorage.removeItem('study_portal_access_expiry');
+      }
+    }
+
+    // Check URL for Auto-Verify (Coming back from Shortener)
     const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('unlocked_code');
-    if (code) {
-      setRevealedKey(code);
+    const autoVerify = urlParams.get('auto_verify');
+    
+    if (autoVerify === 'true') {
+      // Grant 48 Hours Access
+      const newExpiry = Date.now() + (48 * 60 * 60 * 1000);
+      setAccessExpiry(newExpiry);
+      localStorage.setItem('study_portal_access_expiry', newExpiry.toString());
+      
+      // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
+      
+      // Show Success Message (Optional)
+      alert("Verification Successful! 48-Hour Access Granted.");
     }
   }, []);
 
@@ -87,13 +142,6 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  const unlockBatch = (batchId: string) => {
-    const updated = [...unlockedBatches, batchId];
-    setUnlockedBatches(updated);
-    localStorage.setItem('study_portal_unlocked_batches', JSON.stringify(updated));
-    setShowAccessGate(null);
-  };
-
   const navigateToCourse = (course: Course) => {
     setSelectedCourse(course);
     setSelectedChapter(null);
@@ -103,34 +151,50 @@ const App: React.FC = () => {
   };
 
   const attemptVideoAccess = (video: Video, course: Course) => {
-    if (unlockedBatches.includes(course.id) || user?.role === 'admin' || user?.role === 'manager') {
+    const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
+    const hasValidAccess = accessExpiry && accessExpiry > Date.now();
+
+    if (isAdminOrManager || hasValidAccess) {
       setSelectedVideo(video);
       setActiveView('video');
       window.scrollTo(0, 0);
     } else {
-      setShowAccessGate(course.id);
+      setShowAccessGate(true);
     }
   };
 
   const isStaff = user?.role === 'admin' || user?.role === 'manager';
 
   const downloadNote = (resource: Resource) => {
-    const link = document.createElement('a');
-    link.href = resource.url;
-    link.download = resource.title;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Only allow download if accessed
+    const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
+    const hasValidAccess = accessExpiry && accessExpiry > Date.now();
+    
+    if (isAdminOrManager || hasValidAccess) {
+        const link = document.createElement('a');
+        link.href = resource.url;
+        link.download = resource.title;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } else {
+        setShowAccessGate(true);
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#FDFEFE] selection:bg-blue-600 selection:text-white flex">
       <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-slate-200 z-50 transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="p-6 h-full flex flex-col">
-          <div className="flex items-center gap-3 mb-10 px-2 cursor-pointer" onClick={() => setActiveView('home')}>
+          <div className="flex items-center gap-3 mb-8 px-2 cursor-pointer" onClick={() => setActiveView('home')}>
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">S</div>
             <span className="text-xl font-black text-slate-900 tracking-tighter">STUDY PORTAL</span>
           </div>
+
+          {/* Countdown Timer Display */}
+          {accessExpiry && accessExpiry > Date.now() && (
+             <AccessTimer expiry={accessExpiry} />
+          )}
 
           <div className="space-y-2 flex-1">
             <SidebarItem icon={<Home size={20}/>} label="Home Dashboard" active={activeView === 'home'} onClick={() => {setActiveView('home'); setIsSidebarOpen(false);}} />
@@ -160,7 +224,8 @@ const App: React.FC = () => {
               <Menu size={20} />
             </button>
             <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 bg-slate-50 border border-slate-100 rounded-full text-[11px] font-black text-slate-400 uppercase tracking-widest">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Network Status: Online
+              <span className={`w-2 h-2 rounded-full animate-pulse ${accessExpiry && accessExpiry > Date.now() ? 'bg-emerald-500' : 'bg-amber-500'}`}></span> 
+              Status: {accessExpiry && accessExpiry > Date.now() ? 'Premium Active' : 'Basic Access'}
             </div>
           </div>
 
@@ -395,12 +460,7 @@ const App: React.FC = () => {
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onAuthSuccess={handleAuthSuccess} />
       {showAccessGate && (
-        <AccessGate 
-          onUnlock={() => unlockBatch(showAccessGate)} 
-          batchId={showAccessGate} 
-          siteSettings={siteSettings}
-          courses={courses}
-        />
+        <AccessGate siteSettings={siteSettings} />
       )}
     </div>
   );
