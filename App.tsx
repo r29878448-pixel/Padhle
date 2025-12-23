@@ -77,8 +77,8 @@ const App: React.FC = () => {
   const [showAccessGate, setShowAccessGate] = useState(false);
   
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
-    shortenerUrl: 'https://gplinks.in/api',
-    shortenerApiKey: '' // User must set this in Admin Panel
+    shortenerUrl: 'https://vplink.in/api',
+    shortenerApiKey: '320f263d298979dc11826b8e2574610ba0cc5d6b'
   });
 
   useEffect(() => {
@@ -89,7 +89,23 @@ const App: React.FC = () => {
     if (savedUser) setUser(JSON.parse(savedUser));
     
     const savedSettings = localStorage.getItem('study_portal_settings');
-    if (savedSettings) setSiteSettings(JSON.parse(savedSettings));
+    if (savedSettings) {
+       const parsed = JSON.parse(savedSettings);
+       // Check if settings are using old defaults or empty, update to vplink if needed
+       if (!parsed.shortenerApiKey || parsed.shortenerUrl.includes('gplinks')) {
+         const updated = {
+           shortenerUrl: 'https://vplink.in/api',
+           shortenerApiKey: '320f263d298979dc11826b8e2574610ba0cc5d6b'
+         };
+         setSiteSettings(updated);
+         localStorage.setItem('study_portal_settings', JSON.stringify(updated));
+       } else {
+         setSiteSettings(parsed);
+       }
+    } else {
+       // Save default settings immediately
+       localStorage.setItem('study_portal_settings', JSON.stringify(siteSettings));
+    }
 
     // Check Local Storage for Existing Access
     const savedExpiry = localStorage.getItem('study_portal_access_expiry');

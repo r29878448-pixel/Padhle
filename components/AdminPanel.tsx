@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Plus, Trash2, Edit2, X, Layers, 
-  Video as VideoIcon, Upload, Image as ImageIcon, Link as LinkIcon,
-  RefreshCw, Check, Youtube, User as UserIcon, Shield, UserPlus, Settings, Globe, Key, Info, Zap, LayoutDashboard, ChevronDown, Users, Search, Code, CheckCircle, Database, FileText, Download, Save
+  Plus, Trash2, Edit2, X, 
+  Video as VideoIcon, Upload, 
+  RefreshCw, Check, User as UserIcon, Shield, UserPlus, Globe, Key, Save, LayoutDashboard, ChevronDown, ChevronUp, FileText, Youtube, Image
 } from 'lucide-react';
 import { Course, Chapter, Video, StaffMember, SiteSettings, Resource } from '../types';
 
@@ -16,10 +16,13 @@ interface AdminPanelProps {
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, onClose, siteSettings, setSiteSettings }) => {
-  const [activeTab, setActiveTab] = useState<'batches' | 'staff' | 'config' | 'students'>('batches');
+  const [activeTab, setActiveTab] = useState<'batches' | 'staff' | 'config'>('batches');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+
+  // Accordion state for chapters
+  const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const resourceInputRef = useRef<HTMLInputElement>(null);
@@ -59,18 +62,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
     }
   }, []);
 
-  const getCleanId = (input: string) => {
-    if (!input || typeof input !== 'string') return '';
-    let str = input.trim();
-    if (str.includes('<') && str.includes('>')) {
-       const srcMatch = str.match(/src=["'](.*?)["']/);
-       if (srcMatch && srcMatch[1]) str = srcMatch[1];
-    }
-    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-    const match = str.match(regex);
-    if (match && match[1]) return match[1];
-    if (/^[a-zA-Z0-9_-]{11}$/.test(str)) return str;
-    return ''; 
+  // Helper to extract YouTube ID from a full link
+  const extractYoutubeId = (url: string) => {
+    if (!url) return '';
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : url;
   };
 
   const handleAddStaff = () => {
@@ -119,7 +116,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
   
   const handleSaveSettings = () => {
     setSiteSettings(tempSettings);
-    alert("Premium Access settings updated successfully!");
+    alert("Configuration saved successfully!");
   };
 
   const handleUploadResource = (chapterId: string) => {
@@ -156,272 +153,278 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
   const isAdmin = userRole === 'admin';
 
   return (
-    <div className="space-y-8 animate-fadeIn pb-20 text-left">
+    <div className="space-y-6 animate-fadeIn pb-20 text-left font-sans">
       <input type="file" ref={resourceInputRef} className="hidden" accept=".pdf" onChange={onResourceFileSelect} />
       
-      {/* Header */}
-      <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-5">
-          <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-white shadow-xl ${isAdmin ? 'bg-slate-900' : 'bg-blue-600'}`}>
-            <LayoutDashboard size={24} className="md:w-7 md:h-7" />
-          </div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-              {isAdmin ? 'Academic Administration' : 'Manager Dashboard'}
-            </h1>
-            <p className="text-slate-500 text-xs md:text-sm font-bold flex items-center gap-2">
-              <Shield size={14} className={isAdmin ? "text-amber-500" : "text-blue-500"} /> 
-              {userRole.toUpperCase()} Control Center
-            </p>
-          </div>
+      {/* Top Header */}
+      <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+           <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg">
+             <LayoutDashboard size={24} />
+           </div>
+           <div>
+             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Admin Dashboard</h1>
+             <p className="text-slate-500 text-sm font-medium">Manage Content & Settings</p>
+           </div>
         </div>
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 self-start md:self-center overflow-x-auto max-w-full">
-          <button onClick={() => setActiveTab('batches')} className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-black transition-all whitespace-nowrap ${activeTab === 'batches' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Batches</button>
-          <button onClick={() => setActiveTab('students')} className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-black transition-all whitespace-nowrap ${activeTab === 'students' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Students</button>
-          {isAdmin && (
-            <>
-              <button onClick={() => setActiveTab('staff')} className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-black transition-all whitespace-nowrap ${activeTab === 'staff' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Faculty</button>
-              <button onClick={() => setActiveTab('config')} className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-black transition-all whitespace-nowrap ${activeTab === 'config' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Config</button>
-            </>
-          )}
+        
+        <div className="flex bg-slate-100 p-1.5 rounded-xl">
+           <button onClick={() => setActiveTab('batches')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'batches' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}>Batches</button>
+           {isAdmin && (
+             <>
+               <button onClick={() => setActiveTab('staff')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'staff' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}>Faculty</button>
+               <button onClick={() => setActiveTab('config')} className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'config' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}>Settings</button>
+             </>
+           )}
         </div>
       </div>
 
+      {/* BATCHES TAB */}
       {activeTab === 'batches' && (
         <div className="space-y-6">
           <div className="flex justify-between items-center px-2">
-            <h2 className="text-xl font-black text-slate-800 tracking-tight">Batch Catalog</h2>
-            <button onClick={() => { setCurrentBatch(emptyBatch); setEditingId(null); setIsModalOpen(true); }} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-sm flex items-center gap-3 hover:bg-blue-500 shadow-xl shadow-blue-500/20 active:scale-95">
-              <Plus size={18} /> Create Batch
-            </button>
+             <h2 className="text-lg font-black text-slate-800">Active Batches</h2>
+             <button onClick={() => { setCurrentBatch(emptyBatch); setEditingId(null); setIsModalOpen(true); }} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-500/30">
+               <Plus size={18} /> New Batch
+             </button>
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {courses.map(course => (
-              <div key={course.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden">
-                <div className="relative aspect-[16/10] mb-6 rounded-2xl overflow-hidden">
-                  <img src={course.image} className="w-full h-full object-cover group-hover:scale-105 transition-all" />
-                </div>
-                <h3 className="font-black text-slate-900 text-lg mb-4 truncate">{course.title}</h3>
-                <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-                  <span className="text-xs font-mono font-black text-slate-400">ID: {course.accessCode}</span>
-                  <div className="flex gap-2">
-                    <button onClick={() => { setCurrentBatch(course); setEditingId(course.id); setIsModalOpen(true); }} className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"><Edit2 size={18} /></button>
-                    <button onClick={() => setCourses(courses.filter(c => c.id !== course.id))} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={18} /></button>
+             {courses.map(course => (
+               <div key={course.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 hover:shadow-xl transition-all group">
+                  <div className="aspect-video rounded-xl overflow-hidden mb-4 relative">
+                    <img src={course.image} className="w-full h-full object-cover" />
+                    <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white px-2 py-1 rounded-lg text-[10px] font-black uppercase">
+                       {course.chapters.length} Modules
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                  <h3 className="font-bold text-slate-900 text-lg mb-1 truncate">{course.title}</h3>
+                  <p className="text-slate-400 text-xs font-medium mb-4">{course.category} • ₹{course.price}</p>
+                  
+                  <div className="flex gap-2">
+                    <button onClick={() => { setCurrentBatch(course); setEditingId(course.id); setIsModalOpen(true); }} className="flex-1 bg-slate-50 text-slate-600 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-50 hover:text-blue-600 transition-all flex items-center justify-center gap-2">
+                      <Edit2 size={16} /> Edit
+                    </button>
+                    <button onClick={() => setCourses(courses.filter(c => c.id !== course.id))} className="w-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-100 transition-all">
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+               </div>
+             ))}
           </div>
         </div>
       )}
 
+      {/* FACULTY TAB */}
       {activeTab === 'staff' && isAdmin && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-           {/* Create New Staff Form */}
-           <div className="lg:col-span-1 bg-slate-900 text-white p-8 rounded-[2.5rem] h-fit">
-              <div className="flex items-center gap-4 mb-8">
-                 <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30"><UserPlus size={24}/></div>
-                 <div>
-                   <h3 className="font-black text-xl">Recruit Faculty</h3>
-                   <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Add Managers/Admins</p>
+           <div className="lg:col-span-1 bg-white p-8 rounded-[2.5rem] border border-slate-100 h-fit">
+              <h3 className="font-black text-slate-900 text-lg mb-6 flex items-center gap-2"><UserPlus size={20} className="text-blue-600"/> Add Staff</h3>
+              <div className="space-y-4">
+                 <input type="text" placeholder="Full Name" value={newStaff.name} onChange={e => setNewStaff({...newStaff, name: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm outline-none focus:border-blue-500" />
+                 <input type="email" placeholder="Email Address" value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm outline-none focus:border-blue-500" />
+                 
+                 <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+                    {['manager', 'admin'].map(role => (
+                      <button key={role} onClick={() => setNewStaff({...newStaff, role: role as any})} className={`flex-1 py-2 rounded-lg text-xs font-black uppercase transition-all ${newStaff.role === role ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}>
+                        {role}
+                      </button>
+                    ))}
+                 </div>
+                 <button onClick={handleAddStaff} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-sm hover:bg-slate-800">Add Member</button>
+              </div>
+           </div>
+
+           <div className="lg:col-span-2 space-y-4">
+              {staff.map(member => (
+                <div key={member.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 flex items-center justify-between">
+                   <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500">{member.name[0]}</div>
+                      <div>
+                        <h4 className="font-bold text-slate-900">{member.name}</h4>
+                        <p className="text-xs text-slate-400">{member.email} • <span className="uppercase text-blue-500 font-black">{member.role}</span></p>
+                      </div>
+                   </div>
+                   {member.email !== 'r29878448@gmail.com' && (
+                     <button onClick={() => handleRemoveStaff(member.id)} className="p-2 text-slate-300 hover:text-red-500 transition-all"><Trash2 size={18}/></button>
+                   )}
+                </div>
+              ))}
+           </div>
+        </div>
+      )}
+
+      {/* CONFIG TAB */}
+      {activeTab === 'config' && isAdmin && (
+         <div className="max-w-xl mx-auto bg-white p-8 rounded-[2.5rem] border border-slate-100">
+            <div className="text-center mb-8">
+               <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mx-auto mb-4"><Key size={32}/></div>
+               <h3 className="font-black text-slate-900 text-xl">Monetization Settings</h3>
+               <p className="text-slate-500 text-sm">Configure URL Shortener for Premium Access</p>
+            </div>
+
+            <div className="space-y-5">
+               <div>
+                 <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">API Endpoint</label>
+                 <input type="text" value={tempSettings.shortenerUrl} onChange={e => setTempSettings({...tempSettings, shortenerUrl: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-blue-500" placeholder="https://vplink.in/api" />
+               </div>
+               <div>
+                 <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">Publisher API Key</label>
+                 <input type="text" value={tempSettings.shortenerApiKey} onChange={e => setTempSettings({...tempSettings, shortenerApiKey: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-blue-500 font-mono" placeholder="Paste your API key here" />
+               </div>
+               <button onClick={handleSaveSettings} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+                 <Save size={18} /> Save Settings
+               </button>
+            </div>
+         </div>
+      )}
+
+      {/* BATCH EDITOR MODAL */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fadeIn">
+           <div className="bg-white w-full max-w-4xl h-[85vh] rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden">
+              {/* Modal Header */}
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white z-10">
+                 <h2 className="text-xl font-black text-slate-900">
+                    {editingId ? 'Edit Batch' : 'Create New Batch'}
+                 </h2>
+                 <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400"><X size={24}/></button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    
+                    {/* Left Column: Details */}
+                    <div className="md:col-span-1 space-y-6">
+                       <div className="bg-white p-5 rounded-[2rem] border border-slate-100 space-y-4">
+                          <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2"><Image size={16}/> Cover Image</h3>
+                          <div className="aspect-video bg-slate-100 rounded-xl overflow-hidden relative group cursor-pointer border-2 border-dashed border-slate-200" onClick={() => fileInputRef.current?.click()}>
+                             {currentBatch.image ? (
+                               <img src={currentBatch.image} className="w-full h-full object-cover" />
+                             ) : (
+                               <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                                 <Upload size={24} />
+                                 <span className="text-[10px] font-bold mt-2">Upload</span>
+                               </div>
+                             )}
+                             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
+                               const file = e.target.files?.[0];
+                               if (file) {
+                                 const reader = new FileReader();
+                                 reader.onloadend = () => setCurrentBatch({...currentBatch, image: reader.result as string});
+                                 reader.readAsDataURL(file);
+                               }
+                             }} />
+                          </div>
+                       </div>
+
+                       <div className="bg-white p-5 rounded-[2rem] border border-slate-100 space-y-4">
+                          <h3 className="font-bold text-slate-900 text-sm">Batch Info</h3>
+                          <input type="text" placeholder="Batch Title" value={currentBatch.title} onChange={e => setCurrentBatch({...currentBatch, title: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold outline-none focus:border-blue-500" />
+                          <input type="number" placeholder="Price (₹)" value={currentBatch.price} onChange={e => setCurrentBatch({...currentBatch, price: Number(e.target.value)})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold outline-none focus:border-blue-500" />
+                          <input type="text" placeholder="Category (e.g., Class 10)" value={currentBatch.category} onChange={e => setCurrentBatch({...currentBatch, category: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold outline-none focus:border-blue-500" />
+                       </div>
+                    </div>
+
+                    {/* Right Column: Curriculum */}
+                    <div className="md:col-span-2 space-y-6">
+                       <div className="flex items-center justify-between">
+                          <h3 className="font-black text-slate-900">Curriculum</h3>
+                          <button onClick={() => setCurrentBatch({...currentBatch, chapters: [...currentBatch.chapters, { id: `ch-${Date.now()}`, title: 'New Module', videos: [], notes: [] }]})} className="text-blue-600 text-xs font-black uppercase hover:underline flex items-center gap-1">
+                            <Plus size={14}/> Add Module
+                          </button>
+                       </div>
+
+                       <div className="space-y-4">
+                          {currentBatch.chapters.map((chapter, index) => (
+                             <div key={chapter.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all">
+                                {/* Chapter Header */}
+                                <div className="p-4 flex items-center justify-between bg-slate-50 cursor-pointer" onClick={() => setExpandedChapter(expandedChapter === chapter.id ? null : chapter.id)}>
+                                   <div className="flex items-center gap-3 flex-1">
+                                      <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-xs font-bold">{index + 1}</span>
+                                      <input 
+                                        type="text" 
+                                        value={chapter.title} 
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => setCurrentBatch({
+                                          ...currentBatch, 
+                                          chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, title: e.target.value} : c)
+                                        })}
+                                        className="bg-transparent font-bold text-slate-700 outline-none w-full"
+                                        placeholder="Module Name"
+                                      />
+                                   </div>
+                                   <div className="flex items-center gap-2">
+                                      <button onClick={(e) => { e.stopPropagation(); setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.filter(c => c.id !== chapter.id)}); }} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
+                                      {expandedChapter === chapter.id ? <ChevronUp size={18} className="text-slate-400"/> : <ChevronDown size={18} className="text-slate-400"/>}
+                                   </div>
+                                </div>
+
+                                {/* Chapter Body (Videos & Notes) */}
+                                {expandedChapter === chapter.id && (
+                                   <div className="p-4 space-y-6 border-t border-slate-100">
+                                      {/* Videos */}
+                                      <div className="space-y-3">
+                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Videos</p>
+                                         {chapter.videos.map(video => (
+                                           <div key={video.id} className="flex gap-3 items-center">
+                                              <div className="w-8 h-8 bg-red-50 text-red-500 rounded-lg flex items-center justify-center shrink-0"><Youtube size={16}/></div>
+                                              <input 
+                                                type="text" 
+                                                placeholder="Video Title" 
+                                                value={video.title} 
+                                                onChange={e => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.map(v => v.id === video.id ? {...v, title: e.target.value} : v)} : c)})}
+                                                className="flex-1 text-sm font-bold bg-slate-50 px-3 py-2 rounded-lg outline-none" 
+                                              />
+                                              <input 
+                                                type="text" 
+                                                placeholder="YouTube Link" 
+                                                value={video.youtubeId} 
+                                                onChange={e => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.map(v => v.id === video.id ? {...v, youtubeId: e.target.value} : v)} : c)})}
+                                                onBlur={(e) => {
+                                                   // Auto-extract ID on blur
+                                                   const cleanId = extractYoutubeId(e.target.value);
+                                                   if (cleanId !== e.target.value) {
+                                                     setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.map(v => v.id === video.id ? {...v, youtubeId: cleanId} : v)} : c)});
+                                                   }
+                                                }}
+                                                className="w-1/3 text-xs font-mono bg-slate-50 px-3 py-2 rounded-lg outline-none text-slate-500" 
+                                              />
+                                              <button onClick={() => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.filter(v => v.id !== video.id)} : c)})} className="text-slate-300 hover:text-red-500"><X size={16}/></button>
+                                           </div>
+                                         ))}
+                                         <button onClick={() => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: [...c.videos, { id: `v-${Date.now()}`, title: '', youtubeId: '', duration: '00:00', thumbnail: '', description: '' }]} : c)})} className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-lg transition-all">+ Add Video</button>
+                                      </div>
+
+                                      {/* Notes */}
+                                      <div className="space-y-3 pt-4 border-t border-slate-100">
+                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Notes (PDF)</p>
+                                         {chapter.notes?.map(note => (
+                                            <div key={note.id} className="flex items-center justify-between bg-slate-50 px-3 py-2 rounded-lg">
+                                               <span className="text-xs font-bold text-slate-700 flex items-center gap-2"><FileText size={14} className="text-blue-500"/> {note.title}</span>
+                                               <button onClick={() => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, notes: c.notes?.filter(n => n.id !== note.id)} : c)})} className="text-slate-400 hover:text-red-500"><X size={14}/></button>
+                                            </div>
+                                         ))}
+                                         <button onClick={() => handleUploadResource(chapter.id)} className="text-xs font-bold text-slate-500 hover:text-blue-600 border border-dashed border-slate-300 px-3 py-2 rounded-lg w-full">Upload PDF</button>
+                                      </div>
+                                   </div>
+                                )}
+                             </div>
+                          ))}
+                       </div>
+                    </div>
                  </div>
               </div>
-              <div className="space-y-5">
-                 <div className="space-y-2">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-                   <input type="text" value={newStaff.name} onChange={e => setNewStaff({...newStaff, name: e.target.value})} className="w-full px-5 py-3 bg-slate-800 border border-slate-700 rounded-xl font-bold focus:border-blue-500 outline-none" placeholder="ex. Prof. Sharma" />
-                 </div>
-                 <div className="space-y-2">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
-                   <input type="email" value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})} className="w-full px-5 py-3 bg-slate-800 border border-slate-700 rounded-xl font-bold focus:border-blue-500 outline-none" placeholder="faculty@portal.com" />
-                 </div>
-                 <div className="space-y-2">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Access Role</label>
-                   <div className="grid grid-cols-2 gap-3">
-                      <button onClick={() => setNewStaff({...newStaff, role: 'manager'})} className={`py-3 rounded-xl font-black text-xs uppercase tracking-widest border transition-all ${newStaff.role === 'manager' ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}>Manager</button>
-                      <button onClick={() => setNewStaff({...newStaff, role: 'admin'})} className={`py-3 rounded-xl font-black text-xs uppercase tracking-widest border transition-all ${newStaff.role === 'admin' ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}>Admin</button>
-                   </div>
-                 </div>
-                 <button onClick={handleAddStaff} className="w-full bg-white text-slate-900 py-4 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-blue-50 transition-all mt-4 flex items-center justify-center gap-2">
-                   <Plus size={18} /> Grant Access
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-slate-100 bg-white flex justify-end gap-3">
+                 <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-all">Cancel</button>
+                 <button onClick={handleSaveBatch} disabled={saveStatus !== 'idle'} className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-blue-600 transition-all shadow-lg flex items-center gap-2">
+                    {saveStatus === 'saving' ? <RefreshCw className="animate-spin" size={18}/> : <Save size={18}/>}
+                    {saveStatus === 'success' ? 'Saved!' : 'Save Batch'}
                  </button>
               </div>
            </div>
-
-           {/* Staff List */}
-           <div className="lg:col-span-2 space-y-6">
-              <h3 className="text-xl font-black text-slate-800 px-2">Authorized Personnel</h3>
-              <div className="grid gap-4">
-                {staff.map(member => (
-                  <div key={member.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center justify-between group hover:shadow-lg transition-all">
-                     <div className="flex items-center gap-5">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black border ${member.role === 'admin' ? 'bg-amber-50 text-amber-500 border-amber-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                          {member.name.charAt(0)}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-3">
-                            <h4 className="font-bold text-slate-900 text-lg">{member.name}</h4>
-                            <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${member.role === 'admin' ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>{member.role}</span>
-                          </div>
-                          <p className="text-slate-400 text-sm font-medium mt-0.5">{member.email}</p>
-                        </div>
-                     </div>
-                     {member.email !== 'r29878448@gmail.com' && (
-                       <button onClick={() => handleRemoveStaff(member.id)} className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={20}/></button>
-                     )}
-                  </div>
-                ))}
-              </div>
-           </div>
-        </div>
-      )}
-
-      {activeTab === 'config' && isAdmin && (
-        <div className="max-w-2xl mx-auto space-y-8">
-          <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm text-center">
-             <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[2rem] flex items-center justify-center text-white mx-auto mb-6 shadow-2xl shadow-indigo-500/30">
-               <Key size={36} />
-             </div>
-             <h2 className="text-2xl font-black text-slate-900 mb-2">Premium Access Gateway</h2>
-             <p className="text-slate-500 font-medium max-w-md mx-auto">Configure the monetization and access control layer. This integrates with URL shorteners to generate revenue/leads before unlocking content.</p>
-          </div>
-          
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 space-y-6">
-             <div className="flex items-center gap-3 border-b border-slate-100 pb-6 mb-2">
-               <Globe className="text-blue-500" size={24} />
-               <h3 className="font-black text-slate-800 text-lg">Shortener Configuration</h3>
-             </div>
-             
-             <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">API Endpoint URL</label>
-                  <input type="text" value={tempSettings.shortenerUrl} onChange={e => setTempSettings({...tempSettings, shortenerUrl: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-700 focus:border-blue-500 outline-none" placeholder="https://gplinks.in/api" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Publisher API Key</label>
-                  <div className="relative">
-                    <input type="text" value={tempSettings.shortenerApiKey} onChange={e => setTempSettings({...tempSettings, shortenerApiKey: e.target.value})} className="w-full px-6 py-4 pl-12 bg-slate-50 border border-slate-200 rounded-2xl font-mono font-bold text-slate-700 focus:border-blue-500 outline-none" placeholder="xxxxxxxxxxxxxxxx" />
-                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                  </div>
-                </div>
-             </div>
-
-             <div className="pt-4">
-                <button onClick={handleSaveSettings} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-blue-600 transition-all shadow-xl flex items-center justify-center gap-3">
-                  <Save size={20} /> Update Configuration
-                </button>
-             </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'students' && (
-        <div className="bg-white rounded-[3rem] p-16 text-center border border-slate-100 border-dashed">
-           <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300">
-             <Users size={40} />
-           </div>
-           <h3 className="text-xl font-black text-slate-900 mb-2">Student Registry</h3>
-           <p className="text-slate-400 font-medium">Student management is currently handled automatically via enrollment.</p>
-        </div>
-      )}
-
-      {/* Editor Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-fadeIn">
-          <div className="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
-             <div className="p-8 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Batch Curriculum Editor</h2>
-                <button onClick={() => setIsModalOpen(false)} className="p-2.5 hover:bg-slate-100 rounded-xl transition-colors text-slate-400"><X size={24}/></button>
-             </div>
-
-             <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar bg-white">
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                 <div className="space-y-6">
-                    <div>
-                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">Title</label>
-                      <input type="text" value={currentBatch.title} onChange={e => setCurrentBatch({...currentBatch, title: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none focus:border-blue-500 transition-all" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                       <input type="number" placeholder="Price" value={currentBatch.price} onChange={e => setCurrentBatch({...currentBatch, price: Number(e.target.value)})} className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold" />
-                       <input type="text" placeholder="Access Code" value={currentBatch.accessCode} onChange={e => setCurrentBatch({...currentBatch, accessCode: e.target.value.toUpperCase()})} className="w-full px-6 py-4 bg-blue-50 border-2 border-blue-100 rounded-2xl font-black text-center tracking-widest text-blue-700" />
-                    </div>
-                 </div>
-                 <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-2">Cover Image</label>
-                    <div className="aspect-video bg-slate-50 rounded-[2.5rem] overflow-hidden relative group border-2 border-dashed border-slate-200 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                       {currentBatch.image ? <img src={currentBatch.image} className="w-full h-full object-cover" /> : <div className="w-full h-full flex flex-col items-center justify-center text-slate-400"><Upload size={40} /><p className="text-[10px] font-black mt-2">UPLOAD COVER</p></div>}
-                       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
-                         const file = e.target.files?.[0];
-                         if (file) {
-                           const reader = new FileReader();
-                           reader.onloadend = () => setCurrentBatch({...currentBatch, image: reader.result as string});
-                           reader.readAsDataURL(file);
-                         }
-                       }} />
-                    </div>
-                 </div>
-               </div>
-
-               <div className="pt-10 border-t border-slate-100">
-                  <div className="flex justify-between items-center mb-8">
-                    <h3 className="text-xl font-black text-slate-900">Academic Structure</h3>
-                    <button onClick={() => setCurrentBatch({...currentBatch, chapters: [...currentBatch.chapters, { id: `ch-${Date.now()}`, title: 'New Module', videos: [], notes: [] }]})} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center gap-2"><Plus size={16} /> Add Module</button>
-                  </div>
-                  <div className="space-y-8">
-                    {currentBatch.chapters.map((ch, chIdx) => (
-                      <div key={ch.id} className="p-8 bg-slate-50 border-2 border-slate-200 rounded-[2.5rem] space-y-8">
-                         <div className="flex justify-between items-center">
-                           <input type="text" value={ch.title} onChange={e => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === ch.id ? {...c, title: e.target.value} : c)})} className="bg-white border-2 border-slate-200 px-5 py-3 rounded-xl font-black text-base text-slate-900 outline-none focus:border-blue-500 w-2/3" />
-                           <button onClick={() => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.filter(c => c.id !== ch.id)})} className="text-red-400 p-3 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={20}/></button>
-                         </div>
-                         
-                         {/* Lectures Section */}
-                         <div className="space-y-4">
-                           <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Lectures</h4>
-                           {ch.videos.map(v => (
-                             <div key={v.id} className="flex gap-4 p-4 bg-white rounded-2xl border-2 border-slate-200 items-center">
-                               <input type="text" placeholder="Title" value={v.title} onChange={e => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === ch.id ? {...c, videos: c.videos.map(vid => vid.id === v.id ? {...vid, title: e.target.value} : vid)} : c)})} className="flex-1 font-bold text-sm outline-none" />
-                               <input type="text" placeholder="YT Link / ID" value={v.youtubeId} onChange={e => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === ch.id ? {...c, videos: c.videos.map(vid => vid.id === v.id ? {...vid, youtubeId: e.target.value} : vid)} : c)})} className="w-64 font-mono text-xs text-slate-400 bg-slate-50 px-3 py-2 rounded-lg outline-none focus:border-blue-300" />
-                               <button onClick={() => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === ch.id ? {...c, videos: c.videos.filter(vid => vid.id !== v.id)} : c)})} className="p-2 text-red-300 hover:text-red-500"><X size={18}/></button>
-                             </div>
-                           ))}
-                           <button onClick={() => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === ch.id ? {...c, videos: [...c.videos, { id: `v-${Date.now()}`, title: '', youtubeId: '', duration: '00:00', thumbnail: '', description: '' }]} : c)})} className="w-full py-3 border-2 border-dashed border-slate-300 rounded-xl text-slate-400 font-bold text-xs uppercase hover:border-blue-400 hover:text-blue-500 transition-all">+ Add Lecture</button>
-                         </div>
-
-                         {/* Notes/Resources Section */}
-                         <div className="space-y-4 border-t border-slate-200 pt-6">
-                           <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Notes & Study Material</h4>
-                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                             {(ch.notes || []).map(note => (
-                               <div key={note.id} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl">
-                                  <div className="flex items-center gap-3">
-                                    <FileText className="text-blue-600" size={16} />
-                                    <span className="text-xs font-bold text-slate-700 truncate max-w-[150px]">{note.title}</span>
-                                  </div>
-                                  <button onClick={() => {
-                                     const updated = currentBatch.chapters.map(c => c.id === ch.id ? {...c, notes: c.notes?.filter(n => n.id !== note.id)} : c);
-                                     setCurrentBatch({...currentBatch, chapters: updated});
-                                  }} className="text-red-300 hover:text-red-500"><Trash2 size={14} /></button>
-                               </div>
-                             ))}
-                             <button onClick={() => handleUploadResource(ch.id)} className="flex items-center justify-center gap-2 p-3 bg-white border-2 border-dashed border-slate-300 rounded-xl text-xs font-bold text-slate-400 hover:border-blue-400 hover:text-blue-500 transition-all">
-                               <Plus size={16} /> Upload Notes (PDF)
-                             </button>
-                           </div>
-                         </div>
-                      </div>
-                    ))}
-                  </div>
-               </div>
-             </div>
-
-             <div className="p-8 border-t border-slate-100 bg-slate-50 flex gap-4">
-               <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 font-black text-slate-400 uppercase tracking-widest text-xs">Cancel</button>
-               <button onClick={handleSaveBatch} disabled={saveStatus !== 'idle'} className={`flex-[2] py-4 rounded-2xl font-black text-white shadow-xl transition-all flex items-center justify-center gap-3 ${saveStatus === 'success' ? 'bg-green-500' : 'bg-blue-600 hover:bg-blue-500'}`}>
-                 {saveStatus === 'idle' ? 'DEPLOY CHANGES' : saveStatus === 'saving' ? <RefreshCw className="animate-spin" /> : <Check />}
-               </button>
-             </div>
-          </div>
         </div>
       )}
     </div>
