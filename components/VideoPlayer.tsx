@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ExternalLink, Youtube as YoutubeIcon, RefreshCw } from 'lucide-react';
-import Plyr from 'plyr';
+import React, { useState } from 'react';
+import { Youtube as YoutubeIcon, Loader2, ExternalLink } from 'lucide-react';
 
 interface VideoPlayerProps {
   videoId: string;
@@ -8,11 +7,8 @@ interface VideoPlayerProps {
 }
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoId, title }) => {
-  const playerRef = useRef<Plyr | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [loadError, setLoadError] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [key, setKey] = useState(0); // Used to force re-render if needed
 
   const getCleanId = (input: string) => {
     if (!input || typeof input !== 'string') return '';
@@ -36,101 +32,63 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoId, title }) => {
   };
 
   const cleanId = getCleanId(videoId);
-  const youtubeUrl = `https://www.youtube.com/watch?v=${cleanId}`;
+  
+  // Construct a clean embed URL
+  // autoplay=1: Starts video automatically (browser policy permitting)
+  // rel=0: Shows related videos from the same channel only
+  // modestbranding=1: Removes some YouTube branding
+  // playsinline=1: Plays inline on iOS, but allows fullscreen
+  const embedUrl = `https://www.youtube.com/embed/${cleanId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
+  const watchUrl = `https://www.youtube.com/watch?v=${cleanId}`;
 
-  useEffect(() => {
-    if (!cleanId || !containerRef.current) return;
-
-    // Destroy previous instance
-    if (playerRef.current) {
-      playerRef.current.destroy();
-    }
-
-    setLoadError(false);
-    setIsReady(false);
-
-    // Initialize Plyr using the YouTube provider
-    const player = new Plyr(containerRef.current, {
-      controls: [
-        'play-large', 'play', 'progress', 'current-time', 'duration', 
-        'mute', 'volume', 'settings', 'pip', 'fullscreen'
-      ],
-      settings: ['quality', 'speed'],
-      youtube: { 
-        noCookie: true, 
-        rel: 0, 
-        showinfo: 0, 
-        iv_load_policy: 3, 
-        modestbranding: 1
-      },
-    });
-
-    player.on('ready', () => {
-      setIsReady(true);
-    });
-    
-    player.on('error', () => {
-      setLoadError(true);
-    });
-
-    playerRef.current = player;
-
-    return () => {
-      if (playerRef.current) {
-        playerRef.current.destroy();
-      }
-    };
-  }, [cleanId, retryCount]);
-
-  const handleRedirect = () => {
-    window.open(youtubeUrl, '_blank');
+  const handleRetry = () => {
+    setIsLoading(true);
+    setKey(prev => prev + 1);
   };
 
-  if (!cleanId || loadError) {
+  if (!cleanId) {
     return (
-      <div className="w-full aspect-video bg-slate-950 rounded-[3rem] flex flex-col items-center justify-center text-center p-12 border border-slate-800 shadow-2xl relative overflow-hidden">
-        <div className="relative z-10 flex flex-col items-center max-w-md">
-          <div className="w-20 h-20 mb-8 rounded-[2rem] bg-slate-900 border border-slate-800 flex items-center justify-center text-red-500 shadow-2xl">
-            <YoutubeIcon size={44} className={loadError ? "animate-pulse" : ""} />
-          </div>
-          <h3 className="text-white font-black text-2xl mb-3 tracking-tight">Stream Unavailable</h3>
-          <p className="text-slate-400 text-sm font-medium mb-10 leading-relaxed">
-            This video might be restricted or the ID provided is incorrect. Try refreshing the stream or watch directly on YouTube.
-          </p>
-          <div className="flex gap-4">
-            <button 
-              onClick={() => setRetryCount(c => c + 1)}
-              className="bg-slate-800 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-slate-700 transition-all"
-            >
-              <RefreshCw size={18} /> Retry
-            </button>
-            <button 
-              onClick={handleRedirect}
-              className="bg-red-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-red-500 transition-all shadow-xl shadow-red-600/20"
-            >
-              Watch on YouTube <ExternalLink size={18} />
-            </button>
-          </div>
-        </div>
+      <div className="w-full aspect-video bg-slate-950 rounded-[2rem] flex flex-col items-center justify-center text-center p-8 border border-slate-800 shadow-2xl">
+         <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-red-500 mb-4 shadow-inner border border-slate-800">
+            <YoutubeIcon size={32} />
+         </div>
+         <h3 className="text-white font-bold text-lg mb-2">Video Unavailable</h3>
+         <p className="text-slate-500 text-sm">The video source could not be verified.</p>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full aspect-video bg-black rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-white/10">
-       {!isReady && (
-         <div className="absolute inset-0 z-20 bg-slate-950 flex flex-col items-center justify-center gap-4">
-            <RefreshCw className="text-blue-500 animate-spin" size={40} />
-            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Securing Lecture Stream...</p>
+    <div className="relative w-full aspect-video bg-black rounded-[2rem] overflow-hidden shadow-2xl ring-1 ring-slate-900/50 group">
+       {/* Loading Overlay */}
+       {isLoading && (
+         <div className="absolute inset-0 z-10 bg-slate-900 flex flex-col items-center justify-center gap-4">
+            <Loader2 className="text-blue-600 animate-spin" size={48} />
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest animate-pulse">Loading Class...</p>
          </div>
        )}
-       <div className="w-full h-full">
-         <div 
-           ref={containerRef}
-           data-plyr-provider="youtube"
-           data-plyr-embed-id={cleanId}
-         ></div>
-       </div>
+
+       {/* Native YouTube Iframe - The most stable way to play videos */}
+       <iframe
+         key={key}
+         src={embedUrl}
+         title={title}
+         className="absolute inset-0 w-full h-full"
+         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+         allowFullScreen
+         onLoad={() => setIsLoading(false)}
+       ></iframe>
+
+       {/* Backup link for extreme cases */}
+       <a 
+         href={watchUrl} 
+         target="_blank" 
+         rel="noopener noreferrer"
+         className="absolute bottom-4 right-4 bg-black/50 hover:bg-red-600 text-white p-2 rounded-xl backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all scale-90 hover:scale-100 border border-white/10"
+         title="Open in YouTube App"
+       >
+         <ExternalLink size={16} />
+       </a>
     </div>
   );
 };
