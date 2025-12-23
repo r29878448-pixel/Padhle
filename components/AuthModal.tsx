@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Mail, Lock, User, Chrome, AlertCircle, Loader2 } from 'lucide-react';
 import { StaffMember } from '../types';
+import { subscribeToStaff } from '../services/db';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -47,54 +48,54 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess })
         }
       }
 
-      // 2. Dynamic Manager/Staff Check
-      const savedStaff = localStorage.getItem('study_portal_staff');
-      if (isLogin && savedStaff) {
-        const staffList: StaffMember[] = JSON.parse(savedStaff);
-        // Case-insensitive lookup
-        const matchedMember = staffList.find(s => s.email.toLowerCase() === inputEmail);
-        
-        if (matchedMember) {
-           // Use the stored specific password, or fallback to 'Staff@123'
-           const validPassword = matchedMember.password || 'Staff@123';
-           
-           if (inputPassword === validPassword) {
-             onAuthSuccess({
-               name: matchedMember.name,
-               email: matchedMember.email,
-               role: matchedMember.role
-             });
-             setIsLoading(false);
-             return;
-           } else {
-             setError('Invalid password for faculty account.');
-             setIsLoading(false);
-             return;
-           }
-        }
-      }
-
-      // 3. Standard Student Logic (Fallback)
-      // Only allow student login if the email was NOT found in the staff list above.
-      // And generally, we don't want "admin" keywords in student emails to prevent confusion, though not strictly required.
-      if (!isLogin || isLogin) { 
-        // Note: In a real app, you would check student DB here. 
-        // For this demo, anyone not recognized as staff is logged in as a student (if not blocked).
-        
-        if (inputEmail.includes('admin') && !inputEmail.includes('student')) {
-           // Prevent accidentally logging in as student if trying to be admin with wrong password
-           setError('Unauthorized access for administrative account.');
-           setIsLoading(false);
-           return;
+      // 2. Dynamic Manager/Staff Check from Firestore
+      // For simplicity in this structure, we'll use the subscribe method to get a snapshot, 
+      // though in a massive app you'd use getDocs(query(...)) directly. 
+      // Given the small staff size, this is efficient enough.
+      const unsubscribe = subscribeToStaff((staffList) => {
+        if (isLogin) {
+          const matchedMember = staffList.find(s => s.email.toLowerCase() === inputEmail);
+          
+          if (matchedMember) {
+             const validPassword = matchedMember.password || 'Staff@123';
+             
+             if (inputPassword === validPassword) {
+               onAuthSuccess({
+                 name: matchedMember.name,
+                 email: matchedMember.email,
+                 role: matchedMember.role
+               });
+               setIsLoading(false);
+               unsubscribe(); // Cleanup
+               return;
+             } else {
+               setError('Invalid password for faculty account.');
+               setIsLoading(false);
+               unsubscribe(); // Cleanup
+               return;
+             }
+          }
         }
 
-        onAuthSuccess({
-          name: formData.name || 'Student Learner',
-          email: inputEmail,
-          role: 'student'
-        });
-        setIsLoading(false);
-      }
+        // 3. Standard Student Logic (Fallback if not staff)
+        if (!isLogin || isLogin) { 
+          if (inputEmail.includes('admin') && !inputEmail.includes('student')) {
+             setError('Unauthorized access for administrative account.');
+             setIsLoading(false);
+             unsubscribe();
+             return;
+          }
+
+          onAuthSuccess({
+            name: formData.name || 'Student Learner',
+            email: inputEmail,
+            role: 'student'
+          });
+          setIsLoading(false);
+          unsubscribe();
+        }
+      });
+      
     }, 800);
   };
 

@@ -5,6 +5,7 @@ import {
   RefreshCw, Check, User as UserIcon, Shield, UserPlus, Globe, Key, Save, LayoutDashboard, ChevronDown, ChevronUp, FileText, Youtube, Image, Lock
 } from 'lucide-react';
 import { Course, Chapter, Video, StaffMember, SiteSettings, Resource } from '../types';
+import { subscribeToStaff, addStaffToDB, removeStaffFromDB, saveCourseToDB, deleteCourseFromDB, saveSiteSettings } from '../services/db';
 
 interface AdminPanelProps {
   userRole: 'student' | 'admin' | 'manager';
@@ -50,16 +51,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
   const [currentBatch, setCurrentBatch] = useState<Course>(emptyBatch);
 
   useEffect(() => {
-    const savedStaff = localStorage.getItem('study_portal_staff');
-    if (savedStaff) {
-      setStaff(JSON.parse(savedStaff));
-    } else {
-      const initialStaff: StaffMember[] = [
-        { id: 's1', name: 'Primary Admin', email: 'r29878448@gmail.com', role: 'admin', joinedAt: new Date().toLocaleDateString() }
-      ];
-      setStaff(initialStaff);
-      localStorage.setItem('study_portal_staff', JSON.stringify(initialStaff));
-    }
+    // Subscribe to Staff List from Firebase
+    const unsubscribe = subscribeToStaff((staffList) => {
+      setStaff(staffList);
+    });
+    return () => unsubscribe();
   }, []);
 
   // Helper to extract YouTube ID from a full link
@@ -70,13 +66,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
     return (match && match[2].length === 11) ? match[2] : url;
   };
 
-  const handleAddStaff = () => {
+  const handleAddStaff = async () => {
     if (!newStaff.name || !newStaff.email || !newStaff.password) return alert("Please fill all fields including password.");
     
     // Normalize email to lowercase to prevent login issues
     const normalizedEmail = newStaff.email.trim().toLowerCase();
     
-    // Check for duplicate
+    // Check for duplicate locally
     if (staff.some(s => s.email === normalizedEmail)) {
         alert("This email is already registered.");
         return;
@@ -90,43 +86,52 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
       role: newStaff.role,
       joinedAt: new Date().toLocaleDateString()
     };
-    const updatedStaff = [...staff, staffMember];
-    setStaff(updatedStaff);
-    localStorage.setItem('study_portal_staff', JSON.stringify(updatedStaff));
+    
+    // SAVE TO FIREBASE
+    await addStaffToDB(staffMember);
     setNewStaff({ name: '', email: '', password: '', role: 'manager' });
   };
 
-  const handleRemoveStaff = (id: string) => {
-    const updatedStaff = staff.filter(s => s.id !== id);
-    setStaff(updatedStaff);
-    localStorage.setItem('study_portal_staff', JSON.stringify(updatedStaff));
+  const handleRemoveStaff = async (id: string) => {
+    // REMOVE FROM FIREBASE
+    await removeStaffFromDB(id);
   };
 
-  const handleSaveBatch = () => {
+  const handleSaveBatch = async () => {
     if (!currentBatch.title.trim()) return alert("Batch title is required.");
     setSaveStatus('saving');
-    setTimeout(() => {
-      try {
-        let updatedCourses: Course[];
-        if (editingId) {
-          updatedCourses = courses.map(c => c.id === editingId ? { ...currentBatch, id: editingId } : c);
-        } else {
-          updatedCourses = [...courses, { ...currentBatch, id: `batch-${Date.now()}` }];
-        }
-        setCourses(updatedCourses);
-        localStorage.setItem('study_portal_courses', JSON.stringify(updatedCourses));
-        setSaveStatus('success');
-        setTimeout(() => {
-          setIsModalOpen(false);
-          setSaveStatus('idle');
-          setEditingId(null);
-        }, 800);
-      } catch (e) { setSaveStatus('error'); }
-    }, 600);
+    
+    try {
+      // Determine Course Object
+      let courseToSave: Course = currentBatch;
+      if (!editingId) {
+         courseToSave = { ...currentBatch, id: `batch-${Date.now()}` };
+      }
+
+      // SAVE TO FIREBASE
+      await saveCourseToDB(courseToSave);
+
+      setSaveStatus('success');
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setSaveStatus('idle');
+        setEditingId(null);
+      }, 800);
+    } catch (e) { 
+      console.error(e);
+      setSaveStatus('error'); 
+    }
   };
   
-  const handleSaveSettings = () => {
-    setSiteSettings(tempSettings);
+  const handleDeleteBatch = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this batch?")) {
+      await deleteCourseFromDB(id);
+    }
+  }
+  
+  const handleSaveSettings = async () => {
+    await saveSiteSettings(tempSettings);
+    setSiteSettings(tempSettings); // Update local state in App via prop
     alert("Configuration saved successfully!");
   };
 
@@ -216,7 +221,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                     <button onClick={() => { setCurrentBatch(course); setEditingId(course.id); setIsModalOpen(true); }} className="flex-1 bg-slate-50 text-slate-600 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-50 hover:text-blue-600 transition-all flex items-center justify-center gap-2">
                       <Edit2 size={16} /> Edit
                     </button>
-                    <button onClick={() => setCourses(courses.filter(c => c.id !== course.id))} className="w-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-100 transition-all">
+                    <button onClick={() => handleDeleteBatch(course.id)} className="w-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-100 transition-all">
                       <Trash2 size={18} />
                     </button>
                   </div>

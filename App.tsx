@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Home, BookOpen, User as UserIcon, 
-  Search, Bell, Menu, PlayCircle, 
-  Star, GraduationCap, LogOut,
-  ShieldCheck, UserPlus, LogIn, Settings,
-  ShieldAlert, ChevronRight, X, Clock, HelpCircle, MessageSquare, Copy, Check, FileText, Download, Timer
+  Menu, PlayCircle, GraduationCap, LogOut,
+  Settings, ChevronRight, Clock, FileText, Download, Timer, Loader2, Check
 } from 'lucide-react';
 import { Course, Video, SiteSettings, Chapter, Resource } from './types';
 import VideoPlayer from './components/VideoPlayer';
@@ -13,6 +11,7 @@ import AccessGate from './components/AccessGate';
 import AuthModal from './components/AuthModal';
 import AdminPanel from './components/AdminPanel';
 import ProfileSection from './components/ProfileSection';
+import { subscribeToCourses, getSiteSettings } from './services/db';
 
 type UserRole = 'student' | 'admin' | 'manager';
 
@@ -71,6 +70,7 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [user, setUser] = useState<{name: string, email: string, role: UserRole} | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   // 48-Hour Access Logic
   const [accessExpiry, setAccessExpiry] = useState<number | null>(null);
@@ -82,32 +82,26 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
-    const savedCourses = localStorage.getItem('study_portal_courses');
-    if (savedCourses) setCourses(JSON.parse(savedCourses));
+    // 1. Subscribe to Real-time Courses
+    const unsubscribe = subscribeToCourses((data) => {
+      setCourses(data);
+      setIsLoading(false);
+    });
+
+    // 2. Load Settings from DB (fallback to local if fail)
+    const loadSettings = async () => {
+      const dbSettings = await getSiteSettings();
+      if (dbSettings) {
+        setSiteSettings(dbSettings);
+      }
+    };
+    loadSettings();
     
+    // 3. Check Local User Session
     const savedUser = localStorage.getItem('study_portal_user');
     if (savedUser) setUser(JSON.parse(savedUser));
-    
-    const savedSettings = localStorage.getItem('study_portal_settings');
-    if (savedSettings) {
-       const parsed = JSON.parse(savedSettings);
-       // Check if settings are using old defaults or empty, update to vplink if needed
-       if (!parsed.shortenerApiKey || parsed.shortenerUrl.includes('gplinks')) {
-         const updated = {
-           shortenerUrl: 'https://vplink.in/api',
-           shortenerApiKey: '320f263d298979dc11826b8e2574610ba0cc5d6b'
-         };
-         setSiteSettings(updated);
-         localStorage.setItem('study_portal_settings', JSON.stringify(updated));
-       } else {
-         setSiteSettings(parsed);
-       }
-    } else {
-       // Save default settings immediately
-       localStorage.setItem('study_portal_settings', JSON.stringify(siteSettings));
-    }
 
-    // Check Local Storage for Existing Access
+    // 4. Check Access Logic
     const savedExpiry = localStorage.getItem('study_portal_access_expiry');
     if (savedExpiry) {
       const expiryTime = parseInt(savedExpiry);
@@ -118,27 +112,24 @@ const App: React.FC = () => {
       }
     }
 
-    // Check URL for Auto-Verify (Coming back from Shortener)
+    // 5. Check URL for Auto-Verify
     const urlParams = new URLSearchParams(window.location.search);
     const autoVerify = urlParams.get('auto_verify');
     
     if (autoVerify === 'true') {
-      // Grant 48 Hours Access
       const newExpiry = Date.now() + (48 * 60 * 60 * 1000);
       setAccessExpiry(newExpiry);
       localStorage.setItem('study_portal_access_expiry', newExpiry.toString());
-      
-      // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
-      
-      // Show Success Message (Optional)
       alert("Verification Successful! 48-Hour Access Granted.");
     }
+
+    return () => unsubscribe();
   }, []);
 
   const handleUpdateSettings = (newSettings: SiteSettings) => {
     setSiteSettings(newSettings);
-    localStorage.setItem('study_portal_settings', JSON.stringify(newSettings));
+    // Settings are saved in AdminPanel via DB, but we update local state too
   };
 
   const handleAuthSuccess = (userData: {name: string, email: string, role: UserRole}) => {
@@ -182,7 +173,6 @@ const App: React.FC = () => {
   const isStaff = user?.role === 'admin' || user?.role === 'manager';
 
   const downloadNote = (resource: Resource) => {
-    // Only allow download if accessed
     const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
     const hasValidAccess = accessExpiry && accessExpiry > Date.now();
     
@@ -197,6 +187,17 @@ const App: React.FC = () => {
         setShowAccessGate(true);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#FDFEFE] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="animate-spin text-blue-600" size={48} />
+          <p className="font-black text-slate-900 animate-pulse">Connecting to Database...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FDFEFE] selection:bg-blue-600 selection:text-white flex">
