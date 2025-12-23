@@ -120,36 +120,27 @@ const App: React.FC = () => {
     if (autoVerify === 'true') {
       grantAccess();
       window.history.replaceState({}, '', window.location.pathname);
-      alert("Verification Successful! 48-Hour Access Granted.");
+      // alert("Verification Successful! 48-Hour Access Granted."); // Removed for smoother experience
     }
 
-    // 6. Check Fallback Verification (20s Rule)
-    const checkFallbackVerification = () => {
+    // 6. Check Fallback Verification (20s Rule) - Continuous Interval
+    // This ensures that if the link shortener fails or user just waits, they get access.
+    const intervalId = setInterval(() => {
       const startTime = localStorage.getItem('study_portal_verification_start');
       if (startTime) {
         const elapsed = Date.now() - parseInt(startTime);
         if (elapsed > 20000) { // 20 seconds
            grantAccess();
            localStorage.removeItem('study_portal_verification_start'); // Cleanup
-           alert("Verification timeframe passed. Access granted automatically.");
+           // Optional: Notify user
+           // alert("Access granted automatically."); 
         }
       }
-    };
-
-    // Run fallback check on mount
-    checkFallbackVerification();
-
-    // Run fallback check when tab becomes visible (user comes back)
-    const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-            checkFallbackVerification();
-        }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    }, 1000);
 
     return () => {
       unsubscribe();
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      clearInterval(intervalId);
     };
   }, []);
 

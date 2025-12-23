@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Lock, Loader2, Zap, Clock, ShieldAlert, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Lock, Loader2, Zap, Clock, ShieldAlert, X, Timer } from 'lucide-react';
 import { SiteSettings } from '../types';
 
 interface AccessGateProps {
@@ -10,13 +10,26 @@ interface AccessGateProps {
 const AccessGate: React.FC<AccessGateProps> = ({ siteSettings, onClose }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [fallbackSeconds, setFallbackSeconds] = useState<number | null>(null);
+
+  // Effect to handle the visual countdown if fallback mode is triggered
+  useEffect(() => {
+    let interval: any;
+    if (fallbackSeconds !== null && fallbackSeconds > 0) {
+      interval = setInterval(() => {
+        setFallbackSeconds(prev => (prev && prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [fallbackSeconds]);
 
   const handleGetAccess = async () => {
     setIsLoading(true);
     setError('');
+    setFallbackSeconds(null);
 
     // 0. Set Timestamp for Fallback Verification (20s rule)
-    // If the user leaves and comes back after 20s, App.tsx will auto-grant access
+    // If the user leaves and comes back after 20s, App.tsx will auto-grant access.
     localStorage.setItem('study_portal_verification_start', Date.now().toString());
 
     try {
@@ -35,45 +48,36 @@ const AccessGate: React.FC<AccessGateProps> = ({ siteSettings, onClose }) => {
       // 3. Construct API URL
       const requestUrl = `${apiUrl}?api=${apiKey}&url=${encodeURIComponent(destinationUrl)}&format=text`;
       
-      // 4. Proxy (Essential for CORS)
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(requestUrl)}`;
+      // 4. Proxy (Switching to allorigins to avoid 403 from corsproxy.io)
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(requestUrl)}`;
 
       console.log("Generating link via proxy...");
 
       const response = await fetch(proxyUrl);
       
       if (!response.ok) {
-        throw new Error(`Proxy error: ${response.status} ${response.statusText}`);
+        throw new Error(`Proxy error: ${response.status}`);
       }
       
       const shortenedLink = (await response.text()).trim();
 
       // 5. Validation
       if (!shortenedLink) {
-        throw new Error("Empty response from shortener service.");
+        throw new Error("Empty response service.");
       }
 
       if (shortenedLink.startsWith('http')) {
         window.location.href = shortenedLink;
       } else {
-        console.error("API Error Response:", shortenedLink);
-        let displayError = shortenedLink;
-        if (displayError.startsWith('{')) {
-            try {
-                const json = JSON.parse(displayError);
-                if (json.message) displayError = json.message;
-            } catch (e) { /* ignore */ }
-        }
-        throw new Error(`Service Error: ${displayError}`);
+        // If response is JSON error or HTML, treat as failure
+        throw new Error("Invalid link response");
       }
       
     } catch (err: any) {
       console.error("Link Gen Failed:", err);
-      let msg = err.message || "Failed to generate access link.";
-      if (msg === "Failed to fetch") {
-        msg = "Network Error: Please check your internet connection or disable AdBlocker.";
-      }
-      setError(msg);
+      // Fallback: Trigger visual countdown
+      setFallbackSeconds(20);
+      setError("Link service busy. Switching to auto-verification.");
       setIsLoading(false);
     }
   };
@@ -102,18 +106,33 @@ const AccessGate: React.FC<AccessGateProps> = ({ siteSettings, onClose }) => {
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 text-red-600 text-xs font-bold rounded-xl flex items-center gap-2 border border-red-100">
-              <ShieldAlert size={16} /> {error}
+            <div className="p-3 bg-amber-50 text-amber-600 text-xs font-bold rounded-xl flex items-center gap-2 border border-amber-100">
+              <ShieldAlert size={16} className="shrink-0" /> {error}
             </div>
           )}
 
           <button 
             onClick={handleGetAccess}
-            disabled={isLoading}
-            className="w-full bg-blue-600 text-white py-4 rounded-xl font-black text-base hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2"
+            disabled={isLoading || (fallbackSeconds !== null && fallbackSeconds > 0)}
+            className={`w-full py-4 rounded-xl font-black text-base transition-all shadow-lg flex items-center justify-center gap-2 ${
+              fallbackSeconds !== null && fallbackSeconds > 0
+                ? 'bg-emerald-500 text-white cursor-wait'
+                : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/30'
+            }`}
           >
-            {isLoading ? <Loader2 className="animate-spin" /> : <Zap size={20} className="fill-white" />}
-            {isLoading ? "Generating Link..." : "Unlock Access Now"}
+            {isLoading ? (
+              <>
+                <Loader2 className="animate-spin" /> Generating Link...
+              </>
+            ) : fallbackSeconds !== null && fallbackSeconds > 0 ? (
+              <>
+                <Timer className="animate-pulse" size={20} /> Unlocking in {fallbackSeconds}s...
+              </>
+            ) : (
+              <>
+                <Zap size={20} className="fill-white" /> Unlock Access Now
+              </>
+            )}
           </button>
         </div>
       </div>
