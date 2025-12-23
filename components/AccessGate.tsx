@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
-import { Lock, AlertCircle, Loader2, Zap, Clock, ShieldAlert } from 'lucide-react';
+import { Lock, Loader2, Zap, Clock, ShieldAlert, X } from 'lucide-react';
 import { SiteSettings } from '../types';
 
 interface AccessGateProps {
   siteSettings: SiteSettings;
+  onClose: () => void;
 }
 
-const AccessGate: React.FC<AccessGateProps> = ({ siteSettings }) => {
+const AccessGate: React.FC<AccessGateProps> = ({ siteSettings, onClose }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGetAccess = async () => {
     setIsLoading(true);
     setError('');
+
+    // 0. Set Timestamp for Fallback Verification (20s rule)
+    // If the user leaves and comes back after 20s, App.tsx will auto-grant access
+    localStorage.setItem('study_portal_verification_start', Date.now().toString());
 
     try {
       // 1. Destination URL (Auto Verify)
@@ -31,15 +36,17 @@ const AccessGate: React.FC<AccessGateProps> = ({ siteSettings }) => {
       const requestUrl = `${apiUrl}?api=${apiKey}&url=${encodeURIComponent(destinationUrl)}&format=text`;
       
       // 4. Proxy (Essential for CORS)
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(requestUrl)}`;
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(requestUrl)}`;
 
       console.log("Generating link via proxy...");
 
       const response = await fetch(proxyUrl);
-      if (!response.ok) throw new Error("Network error contacting proxy.");
       
-      const data = await response.json();
-      const shortenedLink = data.contents;
+      if (!response.ok) {
+        throw new Error(`Proxy error: ${response.status} ${response.statusText}`);
+      }
+      
+      const shortenedLink = (await response.text()).trim();
 
       // 5. Validation
       if (!shortenedLink) {
@@ -47,35 +54,40 @@ const AccessGate: React.FC<AccessGateProps> = ({ siteSettings }) => {
       }
 
       if (shortenedLink.startsWith('http')) {
-        // Success
         window.location.href = shortenedLink;
       } else {
-        // The API returned an error message as text (e.g. "Invalid API Key")
-        console.error("API Error:", shortenedLink);
-        // Clean up error message
+        console.error("API Error Response:", shortenedLink);
         let displayError = shortenedLink;
-        if(typeof shortenedLink === 'string' && shortenedLink.length > 50) {
+        if (displayError.startsWith('{')) {
             try {
-                const jsonErr = JSON.parse(shortenedLink);
-                if(jsonErr.message) displayError = jsonErr.message;
-            } catch(e) { displayError = "Unknown API Error"; }
+                const json = JSON.parse(displayError);
+                if (json.message) displayError = json.message;
+            } catch (e) { /* ignore */ }
         }
         throw new Error(`Service Error: ${displayError}`);
       }
       
     } catch (err: any) {
       console.error("Link Gen Failed:", err);
-      setError(err.message || "Failed to generate access link. Please try again.");
+      let msg = err.message || "Failed to generate access link.";
+      if (msg === "Failed to fetch") {
+        msg = "Network Error: Please check your internet connection or disable AdBlocker.";
+      }
+      setError(msg);
       setIsLoading(false);
     }
   };
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md animate-fadeIn"></div>
+      <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md animate-fadeIn" onClick={onClose}></div>
       
       <div className="relative w-full max-w-sm bg-white rounded-[2rem] shadow-2xl overflow-hidden animate-slideUp">
-        <div className="bg-slate-900 p-8 text-center">
+        <button onClick={onClose} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors z-10">
+          <X size={24} />
+        </button>
+
+        <div className="bg-slate-900 p-8 text-center relative">
           <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
             <Lock size={32} className="text-white" />
           </div>

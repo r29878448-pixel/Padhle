@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Youtube as YoutubeIcon, Loader2, ExternalLink } from 'lucide-react';
+import { Youtube as YoutubeIcon, Loader2, ExternalLink, RefreshCw } from 'lucide-react';
 
 interface VideoPlayerProps {
   videoId: string;
@@ -34,10 +34,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoId, title }) => {
   const cleanId = getCleanId(videoId);
   
   // Construct a clean embed URL
-  // autoplay=1: Starts video automatically (browser policy permitting)
-  // rel=0: Shows related videos from the same channel only
-  // modestbranding=1: Removes some YouTube branding
-  // playsinline=1: Plays inline on iOS, but allows fullscreen
   const embedUrl = `https://www.youtube.com/embed/${cleanId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
   const watchUrl = `https://www.youtube.com/watch?v=${cleanId}`;
 
@@ -48,12 +44,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoId, title }) => {
 
   if (!cleanId) {
     return (
-      <div className="w-full aspect-video bg-slate-950 rounded-[2rem] flex flex-col items-center justify-center text-center p-8 border border-slate-800 shadow-2xl">
+      <div className="w-full aspect-video bg-slate-950 rounded-[2rem] flex flex-col items-center justify-center text-center p-8 border border-slate-800 shadow-2xl relative overflow-hidden">
          <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-red-500 mb-4 shadow-inner border border-slate-800">
             <YoutubeIcon size={32} />
          </div>
          <h3 className="text-white font-bold text-lg mb-2">Video Unavailable</h3>
-         <p className="text-slate-500 text-sm">The video source could not be verified.</p>
+         <p className="text-slate-500 text-sm mb-6 max-w-xs">The provided video URL format is not recognized. Please verify the link in the Admin Panel.</p>
+         <button onClick={handleRetry} className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-2">
+            <RefreshCw size={14} /> Retry Player
+         </button>
       </div>
     );
   }

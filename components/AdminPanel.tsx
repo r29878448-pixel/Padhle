@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, Trash2, Edit2, X, 
   Video as VideoIcon, Upload, 
-  RefreshCw, Check, User as UserIcon, Shield, UserPlus, Globe, Key, Save, LayoutDashboard, ChevronDown, ChevronUp, FileText, Youtube, Image, Lock
+  RefreshCw, Check, User as UserIcon, Shield, UserPlus, Globe, Key, Save, LayoutDashboard, ChevronDown, ChevronUp, FileText, Youtube, Image, Lock, Link as LinkIcon
 } from 'lucide-react';
 import { Course, Chapter, Video, StaffMember, SiteSettings, Resource } from '../types';
 import { subscribeToStaff, addStaffToDB, removeStaffFromDB, saveCourseToDB, deleteCourseFromDB, saveSiteSettings } from '../services/db';
@@ -51,7 +51,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
   const [currentBatch, setCurrentBatch] = useState<Course>(emptyBatch);
 
   useEffect(() => {
-    // Subscribe to Staff List from Firebase
     const unsubscribe = subscribeToStaff((staffList) => {
       setStaff(staffList);
     });
@@ -68,11 +67,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
 
   const handleAddStaff = async () => {
     if (!newStaff.name || !newStaff.email || !newStaff.password) return alert("Please fill all fields including password.");
-    
-    // Normalize email to lowercase to prevent login issues
     const normalizedEmail = newStaff.email.trim().toLowerCase();
-    
-    // Check for duplicate locally
     if (staff.some(s => s.email === normalizedEmail)) {
         alert("This email is already registered.");
         return;
@@ -86,31 +81,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
       role: newStaff.role,
       joinedAt: new Date().toLocaleDateString()
     };
-    
-    // SAVE TO FIREBASE
     await addStaffToDB(staffMember);
     setNewStaff({ name: '', email: '', password: '', role: 'manager' });
   };
 
   const handleRemoveStaff = async (id: string) => {
-    // REMOVE FROM FIREBASE
     await removeStaffFromDB(id);
   };
 
   const handleSaveBatch = async () => {
     if (!currentBatch.title.trim()) return alert("Batch title is required.");
     setSaveStatus('saving');
-    
     try {
-      // Determine Course Object
       let courseToSave: Course = currentBatch;
       if (!editingId) {
          courseToSave = { ...currentBatch, id: `batch-${Date.now()}` };
       }
-
-      // SAVE TO FIREBASE
       await saveCourseToDB(courseToSave);
-
       setSaveStatus('success');
       setTimeout(() => {
         setIsModalOpen(false);
@@ -131,7 +118,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
   
   const handleSaveSettings = async () => {
     await saveSiteSettings(tempSettings);
-    setSiteSettings(tempSettings); // Update local state in App via prop
+    setSiteSettings(tempSettings);
     alert("Configuration saved successfully!");
   };
 
@@ -395,7 +382,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                                               />
                                               <input 
                                                 type="text" 
-                                                placeholder="YouTube Link" 
+                                                placeholder="YouTube Link / ID" 
                                                 value={video.youtubeId} 
                                                 onChange={e => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.map(v => v.id === video.id ? {...v, youtubeId: e.target.value} : v)} : c)})}
                                                 onBlur={(e) => {
@@ -415,14 +402,52 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
 
                                       {/* Notes */}
                                       <div className="space-y-3 pt-4 border-t border-slate-100">
-                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Notes (PDF)</p>
+                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Study Materials</p>
+                                         
                                          {chapter.notes?.map(note => (
-                                            <div key={note.id} className="flex items-center justify-between bg-slate-50 px-3 py-2 rounded-lg">
-                                               <span className="text-xs font-bold text-slate-700 flex items-center gap-2"><FileText size={14} className="text-blue-500"/> {note.title}</span>
-                                               <button onClick={() => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, notes: c.notes?.filter(n => n.id !== note.id)} : c)})} className="text-slate-400 hover:text-red-500"><X size={14}/></button>
-                                            </div>
+                                          <div key={note.id} className="flex gap-3 items-center bg-slate-50 p-2 rounded-xl group/note">
+                                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${note.type === 'pdf' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'}`}>
+                                                {note.type === 'pdf' ? <FileText size={16}/> : <Globe size={16}/>}
+                                             </div>
+                                             
+                                             <div className="flex-1 grid grid-cols-2 gap-2">
+                                                <input 
+                                                   type="text" 
+                                                   placeholder="Title" 
+                                                   value={note.title}
+                                                   onChange={(e) => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, notes: c.notes?.map(n => n.id === note.id ? {...n, title: e.target.value} : n)} : c)})}
+                                                   className="bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold outline-none focus:border-blue-500"
+                                                />
+                                                <input 
+                                                   type="text" 
+                                                   placeholder={note.type === 'pdf' ? "PDF Data (Base64)" : "External URL"}
+                                                   value={note.url.substring(0, 50) + (note.url.length > 50 ? '...' : '')} 
+                                                   disabled={note.type === 'pdf'}
+                                                   onChange={(e) => {
+                                                      if(note.type !== 'pdf') {
+                                                         setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, notes: c.notes?.map(n => n.id === note.id ? {...n, url: e.target.value} : n)} : c)})
+                                                      }
+                                                   }}
+                                                   className={`bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-mono outline-none focus:border-blue-500 ${note.type === 'pdf' ? 'text-slate-400 cursor-not-allowed' : 'text-slate-600'}`}
+                                                   readOnly={note.type === 'pdf'}
+                                                />
+                                             </div>
+
+                                             <button onClick={() => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, notes: c.notes?.filter(n => n.id !== note.id)} : c)})} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><X size={16}/></button>
+                                          </div>
                                          ))}
-                                         <button onClick={() => handleUploadResource(chapter.id)} className="text-xs font-bold text-slate-500 hover:text-blue-600 border border-dashed border-slate-300 px-3 py-2 rounded-lg w-full">Upload PDF</button>
+
+                                         <div className="flex gap-2">
+                                             <button onClick={() => handleUploadResource(chapter.id)} className="flex-1 text-xs font-bold text-slate-500 hover:text-blue-600 border border-dashed border-slate-300 hover:border-blue-300 bg-white px-3 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2">
+                                                <Upload size={14}/> Upload PDF
+                                             </button>
+                                             <button onClick={() => {
+                                                const newLink: Resource = { id: `res-${Date.now()}`, title: 'New Link', url: '', type: 'link' };
+                                                setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, notes: [...(c.notes || []), newLink]} : c)});
+                                             }} className="flex-1 text-xs font-bold text-slate-500 hover:text-blue-600 border border-dashed border-slate-300 hover:border-blue-300 bg-white px-3 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2">
+                                                <LinkIcon size={14}/> Add Link
+                                             </button>
+                                         </div>
                                       </div>
                                    </div>
                                 )}

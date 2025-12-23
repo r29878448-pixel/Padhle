@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Home, BookOpen, User as UserIcon, 
   Menu, PlayCircle, GraduationCap, LogOut,
-  Settings, ChevronRight, Clock, FileText, Download, Timer, Loader2, Check
+  Settings, ChevronRight, Clock, FileText, Download, Timer, Loader2, Check, ExternalLink
 } from 'lucide-react';
 import { Course, Video, SiteSettings, Chapter, Resource } from './types';
 import VideoPlayer from './components/VideoPlayer';
@@ -15,38 +15,29 @@ import { subscribeToCourses, getSiteSettings } from './services/db';
 
 type UserRole = 'student' | 'admin' | 'manager';
 
-// Countdown Timer Component
-const AccessTimer: React.FC<{ expiry: number }> = ({ expiry }) => {
-  const [timeLeft, setTimeLeft] = useState<string>("");
+// Navbar Compact Timer
+const NavbarTimer: React.FC<{ expiry: number }> = ({ expiry }) => {
+  const [timeLeft, setTimeLeft] = useState<string>("--:--:--");
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const updateTimer = () => {
       const now = Date.now();
       const distance = expiry - now;
-
       if (distance < 0) {
-        setTimeLeft("EXPIRED");
-        clearInterval(interval);
+        setTimeLeft("00:00:00");
       } else {
         const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-        setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+        setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
       }
-    }, 1000);
-
+    };
+    updateTimer(); // Init
+    const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
   }, [expiry]);
 
-  return (
-    <div className="px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl shadow-lg mb-6 text-white">
-      <div className="flex items-center gap-2 mb-1 opacity-90">
-        <Timer size={14} />
-        <span className="text-[10px] font-black uppercase tracking-widest">Access Unlocked</span>
-      </div>
-      <div className="text-2xl font-black font-mono tracking-tight">{timeLeft}</div>
-    </div>
-  );
+  return <span className="font-mono font-black text-emerald-600">{timeLeft}</span>;
 };
 
 const SidebarItem: React.FC<{icon: React.ReactNode, label: string, active: boolean, onClick: () => void}> = ({icon, label, active, onClick}) => (
@@ -81,6 +72,14 @@ const App: React.FC = () => {
     shortenerApiKey: '320f263d298979dc11826b8e2574610ba0cc5d6b'
   });
 
+  // Helper to grant access
+  const grantAccess = () => {
+    const newExpiry = Date.now() + (48 * 60 * 60 * 1000); // 48 Hours
+    setAccessExpiry(newExpiry);
+    localStorage.setItem('study_portal_access_expiry', newExpiry.toString());
+    setShowAccessGate(false);
+  };
+
   useEffect(() => {
     // 1. Subscribe to Real-time Courses
     const unsubscribe = subscribeToCourses((data) => {
@@ -105,10 +104,12 @@ const App: React.FC = () => {
     const savedExpiry = localStorage.getItem('study_portal_access_expiry');
     if (savedExpiry) {
       const expiryTime = parseInt(savedExpiry);
+      // Check if expired
       if (expiryTime > Date.now()) {
         setAccessExpiry(expiryTime);
       } else {
         localStorage.removeItem('study_portal_access_expiry');
+        setAccessExpiry(null);
       }
     }
 
@@ -117,19 +118,43 @@ const App: React.FC = () => {
     const autoVerify = urlParams.get('auto_verify');
     
     if (autoVerify === 'true') {
-      const newExpiry = Date.now() + (48 * 60 * 60 * 1000);
-      setAccessExpiry(newExpiry);
-      localStorage.setItem('study_portal_access_expiry', newExpiry.toString());
+      grantAccess();
       window.history.replaceState({}, '', window.location.pathname);
       alert("Verification Successful! 48-Hour Access Granted.");
     }
 
-    return () => unsubscribe();
+    // 6. Check Fallback Verification (20s Rule)
+    const checkFallbackVerification = () => {
+      const startTime = localStorage.getItem('study_portal_verification_start');
+      if (startTime) {
+        const elapsed = Date.now() - parseInt(startTime);
+        if (elapsed > 20000) { // 20 seconds
+           grantAccess();
+           localStorage.removeItem('study_portal_verification_start'); // Cleanup
+           alert("Verification timeframe passed. Access granted automatically.");
+        }
+      }
+    };
+
+    // Run fallback check on mount
+    checkFallbackVerification();
+
+    // Run fallback check when tab becomes visible (user comes back)
+    const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+            checkFallbackVerification();
+        }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      unsubscribe();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   const handleUpdateSettings = (newSettings: SiteSettings) => {
     setSiteSettings(newSettings);
-    // Settings are saved in AdminPanel via DB, but we update local state too
   };
 
   const handleAuthSuccess = (userData: {name: string, email: string, role: UserRole}) => {
@@ -150,14 +175,25 @@ const App: React.FC = () => {
   }, []);
 
   const navigateToCourse = (course: Course) => {
-    setSelectedCourse(course);
-    setSelectedChapter(null);
-    setActiveView('course');
-    setCourseTab('subjects');
-    window.scrollTo(0, 0);
+    // GATEKEEPING LOGIC HERE
+    const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
+    // Access is valid if expiry exists AND is in the future
+    const hasValidAccess = accessExpiry !== null && accessExpiry > Date.now();
+
+    if (isAdminOrManager || hasValidAccess) {
+      setSelectedCourse(course);
+      setSelectedChapter(null);
+      setActiveView('course');
+      setCourseTab('subjects');
+      window.scrollTo(0, 0);
+    } else {
+      // Trigger Access Gate Logic
+      setShowAccessGate(true);
+    }
   };
 
   const attemptVideoAccess = (video: Video, course: Course) => {
+    // Extra safety check (though navigateToCourse handles the main gate)
     const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
     const hasValidAccess = accessExpiry && accessExpiry > Date.now();
 
@@ -172,17 +208,21 @@ const App: React.FC = () => {
 
   const isStaff = user?.role === 'admin' || user?.role === 'manager';
 
-  const downloadNote = (resource: Resource) => {
+  const handleResourceClick = (resource: Resource) => {
     const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
     const hasValidAccess = accessExpiry && accessExpiry > Date.now();
     
     if (isAdminOrManager || hasValidAccess) {
-        const link = document.createElement('a');
-        link.href = resource.url;
-        link.download = resource.title;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        if (resource.type === 'link') {
+            window.open(resource.url, '_blank');
+        } else {
+            const link = document.createElement('a');
+            link.href = resource.url;
+            link.download = resource.title;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     } else {
         setShowAccessGate(true);
     }
@@ -207,11 +247,6 @@ const App: React.FC = () => {
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">S</div>
             <span className="text-xl font-black text-slate-900 tracking-tighter">STUDY PORTAL</span>
           </div>
-
-          {/* Countdown Timer Display */}
-          {accessExpiry && accessExpiry > Date.now() && (
-             <AccessTimer expiry={accessExpiry} />
-          )}
 
           <div className="space-y-2 flex-1">
             <SidebarItem icon={<Home size={20}/>} label="Home Dashboard" active={activeView === 'home'} onClick={() => {setActiveView('home'); setIsSidebarOpen(false);}} />
@@ -240,9 +275,16 @@ const App: React.FC = () => {
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden p-2 hover:bg-slate-100 rounded-xl text-slate-600">
               <Menu size={20} />
             </button>
-            <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 bg-slate-50 border border-slate-100 rounded-full text-[11px] font-black text-slate-400 uppercase tracking-widest">
+            <div className={`hidden sm:flex items-center gap-2 px-4 py-1.5 bg-slate-50 border border-slate-100 rounded-full text-[11px] font-black uppercase tracking-widest ${accessExpiry && accessExpiry > Date.now() ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-amber-500 bg-amber-50 border-amber-100'}`}>
               <span className={`w-2 h-2 rounded-full animate-pulse ${accessExpiry && accessExpiry > Date.now() ? 'bg-emerald-500' : 'bg-amber-500'}`}></span> 
-              Status: {accessExpiry && accessExpiry > Date.now() ? 'Premium Active' : 'Basic Access'}
+              {accessExpiry && accessExpiry > Date.now() ? (
+                <div className="flex items-center gap-2">
+                   <span>Expires in:</span>
+                   <NavbarTimer expiry={accessExpiry} />
+                </div>
+              ) : (
+                'Basic Access'
+              )}
             </div>
           </div>
 
@@ -444,15 +486,16 @@ const App: React.FC = () => {
                                     <div key={note.id} className="bg-white p-7 rounded-[2.5rem] border border-slate-100 flex flex-col sm:flex-row items-center justify-between group hover:shadow-2xl transition-all gap-4">
                                       <div className="flex items-center gap-6">
                                         <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm shrink-0">
-                                          <FileText size={28} />
+                                          {note.type === 'link' ? <ExternalLink size={28}/> : <FileText size={28} />}
                                         </div>
                                         <div className="text-center sm:text-left">
                                           <h4 className="font-black text-slate-900 text-lg leading-tight">{note.title}</h4>
-                                          <p className="text-[10px] font-black text-slate-400 uppercase mt-1 tracking-widest flex items-center gap-2"><Check size={12}/> Verified Academic Reference • PDF</p>
+                                          <p className="text-[10px] font-black text-slate-400 uppercase mt-1 tracking-widest flex items-center gap-2"><Check size={12}/> Verified Material • {note.type === 'link' ? 'WEB LINK' : 'PDF'}</p>
                                         </div>
                                       </div>
-                                      <button onClick={() => downloadNote(note)} className="w-full sm:w-auto bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95">
-                                        <Download size={18} /> Download Material
+                                      <button onClick={() => handleResourceClick(note)} className="w-full sm:w-auto bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95">
+                                        {note.type === 'link' ? <ExternalLink size={18} /> : <Download size={18} />}
+                                        {note.type === 'link' ? 'Open Resource' : 'Download Material'}
                                       </button>
                                     </div>
                                   ))}
@@ -515,7 +558,7 @@ const App: React.FC = () => {
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onAuthSuccess={handleAuthSuccess} />
       {showAccessGate && (
-        <AccessGate siteSettings={siteSettings} />
+        <AccessGate siteSettings={siteSettings} onClose={() => setShowAccessGate(false)} />
       )}
     </div>
   );
