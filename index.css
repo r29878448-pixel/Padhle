@@ -2,9 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import Plyr styles from node_modules */
-@import 'plyr/dist/plyr.css';
-
 :root {
   font-family: 'Inter', sans-serif;
   background-color: #f8fafc;
