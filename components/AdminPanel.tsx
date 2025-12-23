@@ -371,33 +371,36 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                                       <div className="space-y-3">
                                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Videos</p>
                                          {chapter.videos.map(video => (
-                                           <div key={video.id} className="flex gap-3 items-center">
-                                              <div className="w-8 h-8 bg-red-50 text-red-500 rounded-lg flex items-center justify-center shrink-0"><Youtube size={16}/></div>
-                                              <input 
-                                                type="text" 
-                                                placeholder="Video Title" 
-                                                value={video.title} 
-                                                onChange={e => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.map(v => v.id === video.id ? {...v, title: e.target.value} : v)} : c)})}
-                                                className="flex-1 text-sm font-bold bg-slate-50 px-3 py-2 rounded-lg outline-none" 
-                                              />
-                                              <input 
-                                                type="text" 
-                                                placeholder="YouTube Link / ID" 
-                                                value={video.youtubeId} 
-                                                onChange={e => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.map(v => v.id === video.id ? {...v, youtubeId: e.target.value} : v)} : c)})}
-                                                onBlur={(e) => {
-                                                   // Auto-extract ID on blur
-                                                   const cleanId = extractYoutubeId(e.target.value);
-                                                   if (cleanId !== e.target.value) {
-                                                     setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.map(v => v.id === video.id ? {...v, youtubeId: cleanId} : v)} : c)});
-                                                   }
-                                                }}
-                                                className="w-1/3 text-xs font-mono bg-slate-50 px-3 py-2 rounded-lg outline-none text-slate-500" 
-                                              />
-                                              <button onClick={() => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.filter(v => v.id !== video.id)} : c)})} className="text-slate-300 hover:text-red-500"><X size={16}/></button>
+                                           <div key={video.id} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                              <div className="w-8 h-8 bg-white text-red-600 rounded-lg flex items-center justify-center shrink-0 shadow-sm"><Youtube size={16}/></div>
+                                              <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                  <input 
+                                                    type="text" 
+                                                    placeholder="Video Title" 
+                                                    value={video.title} 
+                                                    onChange={e => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.map(v => v.id === video.id ? {...v, title: e.target.value} : v)} : c)})}
+                                                    className="w-full text-sm font-bold bg-white px-3 py-2 rounded-lg outline-none border border-transparent focus:border-blue-500 transition-all" 
+                                                  />
+                                                  <input 
+                                                    type="text" 
+                                                    placeholder="Paste YouTube Link Here" 
+                                                    value={video.youtubeId} 
+                                                    onChange={e => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.map(v => v.id === video.id ? {...v, youtubeId: e.target.value} : v)} : c)})}
+                                                    onBlur={(e) => {
+                                                       const cleanId = extractYoutubeId(e.target.value);
+                                                       if (cleanId !== e.target.value) {
+                                                         setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.map(v => v.id === video.id ? {...v, youtubeId: cleanId} : v)} : c)});
+                                                       }
+                                                    }}
+                                                    className="w-full text-xs font-mono bg-white px-3 py-2 rounded-lg outline-none text-slate-600 border border-transparent focus:border-blue-500 transition-all" 
+                                                  />
+                                              </div>
+                                              <button onClick={() => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.filter(v => v.id !== video.id)} : c)})} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all self-end sm:self-center"><Trash2 size={16}/></button>
                                            </div>
                                          ))}
-                                         <button onClick={() => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: [...c.videos, { id: `v-${Date.now()}`, title: '', youtubeId: '', duration: '00:00', thumbnail: '', description: '' }]} : c)})} className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-lg transition-all">+ Add Video</button>
+                                         <button onClick={() => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: [...c.videos, { id: `v-${Date.now()}`, title: '', youtubeId: '', duration: '00:00', thumbnail: '', description: '' }]} : c)})} className="w-full py-3 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 font-bold text-xs uppercase hover:border-blue-500 hover:text-blue-600 transition-all flex items-center justify-center gap-2">
+                                            <Plus size={16} /> Add Video Lecture
+                                         </button>
                                       </div>
 
                                       {/* Notes */}
