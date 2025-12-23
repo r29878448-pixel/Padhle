@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, Trash2, Edit2, X, 
   Video as VideoIcon, Upload, 
-  RefreshCw, Check, User as UserIcon, Shield, UserPlus, Globe, Key, Save, LayoutDashboard, ChevronDown, ChevronUp, FileText, Youtube, Image
+  RefreshCw, Check, User as UserIcon, Shield, UserPlus, Globe, Key, Save, LayoutDashboard, ChevronDown, ChevronUp, FileText, Youtube, Image, Lock
 } from 'lucide-react';
 import { Course, Chapter, Video, StaffMember, SiteSettings, Resource } from '../types';
 
@@ -29,7 +29,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
   const [activeChapterForResource, setActiveChapterForResource] = useState<string | null>(null);
 
   const [staff, setStaff] = useState<StaffMember[]>([]);
-  const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'manager' as 'manager' | 'admin' });
+  const [newStaff, setNewStaff] = useState({ name: '', email: '', password: '', role: 'manager' as 'manager' | 'admin' });
   const [tempSettings, setTempSettings] = useState<SiteSettings>(siteSettings);
 
   const emptyBatch: Course = {
@@ -71,18 +71,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
   };
 
   const handleAddStaff = () => {
-    if (!newStaff.name || !newStaff.email) return;
+    if (!newStaff.name || !newStaff.email || !newStaff.password) return alert("Please fill all fields including password.");
     const staffMember: StaffMember = {
       id: `staff-${Date.now()}`,
       name: newStaff.name,
       email: newStaff.email,
+      password: newStaff.password,
       role: newStaff.role,
       joinedAt: new Date().toLocaleDateString()
     };
     const updatedStaff = [...staff, staffMember];
     setStaff(updatedStaff);
     localStorage.setItem('study_portal_staff', JSON.stringify(updatedStaff));
-    setNewStaff({ name: '', email: '', role: 'manager' });
+    setNewStaff({ name: '', email: '', password: '', role: 'manager' });
   };
 
   const handleRemoveStaff = (id: string) => {
@@ -223,6 +224,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
               <div className="space-y-4">
                  <input type="text" placeholder="Full Name" value={newStaff.name} onChange={e => setNewStaff({...newStaff, name: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm outline-none focus:border-blue-500" />
                  <input type="email" placeholder="Email Address" value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm outline-none focus:border-blue-500" />
+                 <input type="text" placeholder="Set Password" value={newStaff.password} onChange={e => setNewStaff({...newStaff, password: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm outline-none focus:border-blue-500" />
                  
                  <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
                     {['manager', 'admin'].map(role => (

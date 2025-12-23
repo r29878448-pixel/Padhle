@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { X, Mail, Lock, User, Chrome, AlertCircle, Loader2 } from 'lucide-react';
 import { StaffMember } from '../types';
@@ -52,9 +51,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess })
         const matchedMember = staffList.find(s => s.email === formData.email);
         
         if (matchedMember) {
-           // For simplicity in this mock, staff use a common "Staff@123" password
-           // In a real app, they'd set their own during a first-time login
-           if (formData.password === 'Staff@123' || formData.password === 'Admin@123') {
+           // Use the stored specific password, or fallback to 'Staff@123' for old accounts that didn't have one set.
+           const validPassword = matchedMember.password || 'Staff@123';
+           
+           if (formData.password === validPassword) {
              onAuthSuccess({
                name: matchedMember.name,
                email: matchedMember.email,

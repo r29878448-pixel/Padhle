@@ -52,6 +52,7 @@ export interface StaffMember {
   id: string;
   name: string;
   email: string;
+  password?: string;
   role: 'manager' | 'admin';
   joinedAt: string;
 }
