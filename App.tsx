@@ -214,7 +214,7 @@ const App: React.FC = () => {
 
           <div className="space-y-2 flex-1">
             <SidebarItem icon={<Home size={20}/>} label="Home Dashboard" active={activeView === 'home'} onClick={() => {setActiveView('home'); setIsSidebarOpen(false);}} />
-            <SidebarItem icon={<BookOpen size={20}/>} label="My Enrollments" active={activeView === 'course'} onClick={() => {setActiveView('course'); setIsSidebarOpen(false);}} />
+            <SidebarItem icon={<BookOpen size={20}/>} label="My Enrollments" active={activeView === 'course'} onClick={() => {setActiveView('course'); setSelectedCourse(null); setIsSidebarOpen(false);}} />
             <SidebarItem icon={<UserIcon size={20}/>} label="Student Profile" active={activeView === 'profile'} onClick={() => {setActiveView('profile'); setIsSidebarOpen(false);}} />
             
             {isStaff && (
@@ -311,121 +311,159 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {activeView === 'course' && selectedCourse && (
-              <div className="animate-fadeIn max-w-4xl mx-auto text-left">
-                 <div className="flex items-center gap-4 mb-10">
-                    <button onClick={() => setActiveView('home')} className="p-3 hover:bg-slate-100 rounded-2xl transition-colors"><ChevronRight size={24} className="rotate-180 text-slate-400"/></button>
-                    <div>
-                      <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none">{selectedCourse.title}</h1>
-                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-2">Active Enrollment</p>
-                    </div>
-                 </div>
-                 
-                 <div className="flex border-b border-slate-200 mb-10 gap-8 overflow-x-auto whitespace-nowrap scrollbar-hide">
-                    {[
-                      {id: 'subjects', label: 'Curriculum'}, 
-                      {id: 'description', label: 'Details'}, 
-                      {id: 'resources', label: 'Study Notes'}
-                    ].map(tab => (
-                      <button key={tab.id} onClick={() => {setCourseTab(tab.id as any); setSelectedChapter(null);}} className={`pb-4 px-2 text-sm font-black transition-all relative ${courseTab === tab.id ? 'text-blue-600' : 'text-slate-400 hover:text-slate-800'}`}>
-                        {tab.label}
-                        {courseTab === tab.id && <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-blue-600 rounded-t-full shadow-[0_-2px_8px_rgba(37,99,235,0.4)]"></div>}
-                      </button>
-                    ))}
-                 </div>
-
-                 {courseTab === 'subjects' && (
-                   <div className="animate-fadeIn space-y-6">
-                      {selectedChapter ? (
-                        <div className="space-y-6">
-                           <button onClick={() => setSelectedChapter(null)} className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline mb-4 flex items-center gap-1">← Return to subject list</button>
-                           <h2 className="text-xl font-black text-slate-900 mb-8">{selectedChapter.title} Lectures</h2>
-                           <div className="grid gap-5">
-                             {selectedChapter.videos.map(v => (
-                               <button key={v.id} onClick={() => attemptVideoAccess(v, selectedCourse)} className="w-full flex items-center gap-6 p-6 bg-white border border-slate-100 rounded-[2.5rem] hover:shadow-xl transition-all group text-left">
-                                  <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-[1.5rem] flex items-center justify-center shrink-0 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all"><PlayCircle size={32} /></div>
-                                  <div className="flex-1">
-                                    <h4 className="font-black text-slate-900 text-lg tracking-tight group-hover:text-blue-600 transition-colors">{v.title}</h4>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 flex items-center gap-2"><Clock size={12}/> Academic Session • {v.duration}</p>
-                                  </div>
-                                  <ChevronRight size={20} className="text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all"/>
-                               </button>
-                             ))}
-                             {selectedChapter.videos.length === 0 && <p className="text-center py-10 text-slate-400 font-bold">No lectures uploaded in this subject yet.</p>}
-                           </div>
-                        </div>
-                      ) : (
-                        <div className="grid gap-5">
-                          {selectedCourse.chapters.map(ch => (
-                            <button key={ch.id} onClick={() => setSelectedChapter(ch)} className="w-full flex items-center gap-6 p-6 bg-white border border-slate-100 rounded-[3rem] hover:shadow-xl transition-all group text-left">
-                               <div className="w-16 h-16 bg-slate-50 text-slate-900 font-black text-xl rounded-3xl flex items-center justify-center border border-slate-100 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                                 {ch.title.substring(0, 1).toUpperCase()}
+            {activeView === 'course' && (
+              !selectedCourse ? (
+                <div className="animate-fadeIn text-left">
+                   <div className="flex items-center justify-between mb-10">
+                      <h2 className="text-3xl font-black text-slate-900 tracking-tight">My Enrollments</h2>
+                      <button onClick={() => setActiveView('home')} className="text-blue-600 font-bold text-sm hover:underline">Explore More</button>
+                   </div>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+                      {courses.map(course => (
+                        <div key={course.id} className="bg-white rounded-[3rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-slate-100 cursor-pointer flex flex-col group" onClick={() => navigateToCourse(course)}>
+                          <div className="relative aspect-video overflow-hidden">
+                            <img src={course.image} alt={course.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+                            <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-lg">
+                              Continue Learning
+                            </div>
+                          </div>
+                          <div className="p-8 flex-1 flex flex-col">
+                            <h3 className="font-black text-xl text-slate-900 mb-2 leading-tight tracking-tight">{course.title}</h3>
+                            <div className="mt-auto pt-6 border-t border-slate-50">
+                               <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                 <div className="h-full bg-blue-600 w-1/3"></div>
                                </div>
-                               <div className="flex-1">
-                                 <h4 className="font-black text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{ch.title}</h4>
-                                 <div className="flex items-center gap-4 mt-3">
-                                   <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                                      <div className="h-full bg-blue-500 w-0"></div>
-                                   </div>
-                                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enrollment Status: Active</span>
-                                 </div>
-                               </div>
-                               <ChevronRight size={20} className="text-slate-300 group-hover:text-blue-600 transition-all"/>
-                            </button>
-                          ))}
+                               <p className="text-[10px] font-bold text-slate-400 mt-2 text-right">33% Complete</p>
+                            </div>
+                          </div>
                         </div>
+                      ))}
+                      {courses.length === 0 && (
+                         <div className="col-span-full py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
+                           <BookOpen className="mx-auto text-slate-200 mb-4" size={64} />
+                           <p className="text-slate-400 font-bold">You haven't enrolled in any batches yet.</p>
+                           <button onClick={() => setActiveView('home')} className="mt-4 bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all">Browse Batches</button>
+                         </div>
                       )}
                    </div>
-                 )}
-
-                 {courseTab === 'resources' && (
-                   <div className="animate-fadeIn space-y-10">
-                      <div className="bg-blue-600 p-12 rounded-[3.5rem] text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl shadow-blue-500/25 overflow-hidden relative">
-                        <div className="absolute top-0 right-0 p-10 opacity-10">
-                          <FileText size={160} />
-                        </div>
-                        <div className="relative z-10">
-                           <h2 className="text-3xl font-black mb-2 tracking-tight">Academic Vault</h2>
-                           <p className="text-blue-100 text-sm font-medium max-w-sm">Access exclusive chapter-wise notes, PDFs, and assignments curated for competitive excellence.</p>
-                        </div>
-                        <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-[2.5rem] flex items-center justify-center border border-white/20 shadow-inner relative z-10"><Download size={36} /></div>
-                      </div>
-
-                      <div className="grid gap-6">
-                        {selectedCourse.chapters.every(ch => !ch.notes || ch.notes.length === 0) ? (
-                           <div className="py-24 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
-                             <FileText className="mx-auto text-slate-200 mb-4" size={64} />
-                             <p className="text-slate-400 font-bold">The Academic Vault is currently empty for this batch.</p>
-                           </div>
-                        ) : (
-                          selectedCourse.chapters.map(ch => (
-                            ch.notes && ch.notes.length > 0 && (
-                              <div key={ch.id} className="space-y-4">
-                                <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-4">{ch.title} Study Material</h3>
-                                {ch.notes.map(note => (
-                                  <div key={note.id} className="bg-white p-7 rounded-[2.5rem] border border-slate-100 flex flex-col sm:flex-row items-center justify-between group hover:shadow-2xl transition-all gap-4">
-                                    <div className="flex items-center gap-6">
-                                      <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm shrink-0">
-                                        <FileText size={28} />
-                                      </div>
-                                      <div className="text-center sm:text-left">
-                                        <h4 className="font-black text-slate-900 text-lg leading-tight">{note.title}</h4>
-                                        <p className="text-[10px] font-black text-slate-400 uppercase mt-1 tracking-widest flex items-center gap-2"><Check size={12}/> Verified Academic Reference • PDF</p>
-                                      </div>
-                                    </div>
-                                    <button onClick={() => downloadNote(note)} className="w-full sm:w-auto bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95">
-                                      <Download size={18} /> Download Material
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            )
-                          ))
-                        )}
+                </div>
+              ) : (
+                <div className="animate-fadeIn max-w-4xl mx-auto text-left">
+                   <div className="flex items-center gap-4 mb-10">
+                      <button onClick={() => setSelectedCourse(null)} className="p-3 hover:bg-slate-100 rounded-2xl transition-colors"><ChevronRight size={24} className="rotate-180 text-slate-400"/></button>
+                      <div>
+                        <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none">{selectedCourse.title}</h1>
+                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-2">Active Enrollment</p>
                       </div>
                    </div>
-                 )}
-              </div>
+                   
+                   <div className="flex border-b border-slate-200 mb-10 gap-8 overflow-x-auto whitespace-nowrap scrollbar-hide">
+                      {[
+                        {id: 'subjects', label: 'Curriculum'}, 
+                        {id: 'description', label: 'Details'}, 
+                        {id: 'resources', label: 'Study Notes'}
+                      ].map(tab => (
+                        <button key={tab.id} onClick={() => {setCourseTab(tab.id as any); setSelectedChapter(null);}} className={`pb-4 px-2 text-sm font-black transition-all relative ${courseTab === tab.id ? 'text-blue-600' : 'text-slate-400 hover:text-slate-800'}`}>
+                          {tab.label}
+                          {courseTab === tab.id && <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-blue-600 rounded-t-full shadow-[0_-2px_8px_rgba(37,99,235,0.4)]"></div>}
+                        </button>
+                      ))}
+                   </div>
+
+                   {courseTab === 'subjects' && (
+                     <div className="animate-fadeIn space-y-6">
+                        {selectedChapter ? (
+                          <div className="space-y-6">
+                             <button onClick={() => setSelectedChapter(null)} className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline mb-4 flex items-center gap-1">← Return to subject list</button>
+                             <h2 className="text-xl font-black text-slate-900 mb-8">{selectedChapter.title} Lectures</h2>
+                             <div className="grid gap-5">
+                               {selectedChapter.videos.map(v => (
+                                 <button key={v.id} onClick={() => attemptVideoAccess(v, selectedCourse)} className="w-full flex items-center gap-6 p-6 bg-white border border-slate-100 rounded-[2.5rem] hover:shadow-xl transition-all group text-left">
+                                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-[1.5rem] flex items-center justify-center shrink-0 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all"><PlayCircle size={32} /></div>
+                                    <div className="flex-1">
+                                      <h4 className="font-black text-slate-900 text-lg tracking-tight group-hover:text-blue-600 transition-colors">{v.title}</h4>
+                                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 flex items-center gap-2"><Clock size={12}/> Academic Session • {v.duration}</p>
+                                    </div>
+                                    <ChevronRight size={20} className="text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all"/>
+                                 </button>
+                               ))}
+                               {selectedChapter.videos.length === 0 && <p className="text-center py-10 text-slate-400 font-bold">No lectures uploaded in this subject yet.</p>}
+                             </div>
+                          </div>
+                        ) : (
+                          <div className="grid gap-5">
+                            {selectedCourse.chapters.map(ch => (
+                              <button key={ch.id} onClick={() => setSelectedChapter(ch)} className="w-full flex items-center gap-6 p-6 bg-white border border-slate-100 rounded-[3rem] hover:shadow-xl transition-all group text-left">
+                                 <div className="w-16 h-16 bg-slate-50 text-slate-900 font-black text-xl rounded-3xl flex items-center justify-center border border-slate-100 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                   {ch.title.substring(0, 1).toUpperCase()}
+                                 </div>
+                                 <div className="flex-1">
+                                   <h4 className="font-black text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{ch.title}</h4>
+                                   <div className="flex items-center gap-4 mt-3">
+                                     <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <div className="h-full bg-blue-500 w-0"></div>
+                                     </div>
+                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enrollment Status: Active</span>
+                                   </div>
+                                 </div>
+                                 <ChevronRight size={20} className="text-slate-300 group-hover:text-blue-600 transition-all"/>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                     </div>
+                   )}
+
+                   {courseTab === 'resources' && (
+                     <div className="animate-fadeIn space-y-10">
+                        <div className="bg-blue-600 p-12 rounded-[3.5rem] text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl shadow-blue-500/25 overflow-hidden relative">
+                          <div className="absolute top-0 right-0 p-10 opacity-10">
+                            <FileText size={160} />
+                          </div>
+                          <div className="relative z-10">
+                             <h2 className="text-3xl font-black mb-2 tracking-tight">Academic Vault</h2>
+                             <p className="text-blue-100 text-sm font-medium max-w-sm">Access exclusive chapter-wise notes, PDFs, and assignments curated for competitive excellence.</p>
+                          </div>
+                          <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-[2.5rem] flex items-center justify-center border border-white/20 shadow-inner relative z-10"><Download size={36} /></div>
+                        </div>
+
+                        <div className="grid gap-6">
+                          {selectedCourse.chapters.every(ch => !ch.notes || ch.notes.length === 0) ? (
+                             <div className="py-24 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-100">
+                               <FileText className="mx-auto text-slate-200 mb-4" size={64} />
+                               <p className="text-slate-400 font-bold">The Academic Vault is currently empty for this batch.</p>
+                             </div>
+                          ) : (
+                            selectedCourse.chapters.map(ch => (
+                              ch.notes && ch.notes.length > 0 && (
+                                <div key={ch.id} className="space-y-4">
+                                  <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-4">{ch.title} Study Material</h3>
+                                  {ch.notes.map(note => (
+                                    <div key={note.id} className="bg-white p-7 rounded-[2.5rem] border border-slate-100 flex flex-col sm:flex-row items-center justify-between group hover:shadow-2xl transition-all gap-4">
+                                      <div className="flex items-center gap-6">
+                                        <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm shrink-0">
+                                          <FileText size={28} />
+                                        </div>
+                                        <div className="text-center sm:text-left">
+                                          <h4 className="font-black text-slate-900 text-lg leading-tight">{note.title}</h4>
+                                          <p className="text-[10px] font-black text-slate-400 uppercase mt-1 tracking-widest flex items-center gap-2"><Check size={12}/> Verified Academic Reference • PDF</p>
+                                        </div>
+                                      </div>
+                                      <button onClick={() => downloadNote(note)} className="w-full sm:w-auto bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95">
+                                        <Download size={18} /> Download Material
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )
+                            ))
+                          )}
+                        </div>
+                     </div>
+                   )}
+                </div>
+              )
             )}
 
             {activeView === 'video' && selectedVideo && (
