@@ -7,8 +7,8 @@ export const solveDoubt = async (question: string, context: string) => {
   const ai = getAI();
   try {
     const response = await ai.models.generateContent({
-      // Using gemini-3-pro-preview for complex reasoning suited for Class 9/10 academics
-      model: 'gemini-3-pro-preview',
+      // Using gemini-3-flash-preview for faster and more reliable responses for chat
+      model: 'gemini-3-flash-preview',
       contents: `Context: You are a friendly, human-like tutor for Class 9 and 10 students. The student is watching a video titled "${context}".
       
       Question: ${question}`,
@@ -21,6 +21,6 @@ export const solveDoubt = async (question: string, context: string) => {
     return response.text || "I'm sorry, I couldn't process that. Please try again.";
   } catch (error) {
     console.error("AI Doubt Solver Error:", error);
-    return "Error connecting to the AI teacher. Please check your connection.";
+    return "Error connecting to the AI teacher. Please check your internet connection.";
   }
 };

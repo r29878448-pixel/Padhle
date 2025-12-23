@@ -601,7 +601,7 @@ const App: React.FC = () => {
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onAuthSuccess={handleAuthSuccess} />
       {showAccessGate && (
-        <AccessGate siteSettings={siteSettings} onClose={() => setShowAccessGate(false)} />
+        <AccessGate siteSettings={siteSettings} onClose={() => setShowAccessGate(false)} onAccessGranted={grantAccess} />
       )}
     </div>
   );

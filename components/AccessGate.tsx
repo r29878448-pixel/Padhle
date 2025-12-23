@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Loader2, Zap, Clock, ShieldAlert, X, Timer } from 'lucide-react';
+import { Lock, Loader2, Zap, Clock, ShieldAlert, X, Timer, CheckCircle } from 'lucide-react';
 import { SiteSettings } from '../types';
 
 interface AccessGateProps {
   siteSettings: SiteSettings;
   onClose: () => void;
+  onAccessGranted: () => void;
 }
 
-const AccessGate: React.FC<AccessGateProps> = ({ siteSettings, onClose }) => {
+const AccessGate: React.FC<AccessGateProps> = ({ siteSettings, onClose, onAccessGranted }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [fallbackSeconds, setFallbackSeconds] = useState<number | null>(null);
+  const [isFallbackMode, setIsFallbackMode] = useState(false);
 
   // Effect to handle the visual countdown if fallback mode is triggered
   useEffect(() => {
@@ -23,7 +25,13 @@ const AccessGate: React.FC<AccessGateProps> = ({ siteSettings, onClose }) => {
     return () => clearInterval(interval);
   }, [fallbackSeconds]);
 
-  const handleGetAccess = async () => {
+  const handleAction = async () => {
+    // If in fallback mode and timer finished, grant access
+    if (isFallbackMode && fallbackSeconds === 0) {
+        onAccessGranted();
+        return;
+    }
+
     setIsLoading(true);
     setError('');
     setFallbackSeconds(null);
@@ -76,8 +84,9 @@ const AccessGate: React.FC<AccessGateProps> = ({ siteSettings, onClose }) => {
     } catch (err: any) {
       console.error("Link Gen Failed:", err);
       // Fallback: Trigger visual countdown
-      setFallbackSeconds(20);
-      setError("Link service busy. Switching to auto-verification.");
+      setIsFallbackMode(true);
+      setFallbackSeconds(15);
+      setError("Link service busy. Manual verification enabled.");
       setIsLoading(false);
     }
   };
@@ -112,11 +121,13 @@ const AccessGate: React.FC<AccessGateProps> = ({ siteSettings, onClose }) => {
           )}
 
           <button 
-            onClick={handleGetAccess}
+            onClick={handleAction}
             disabled={isLoading || (fallbackSeconds !== null && fallbackSeconds > 0)}
             className={`w-full py-4 rounded-xl font-black text-base transition-all shadow-lg flex items-center justify-center gap-2 ${
-              fallbackSeconds !== null && fallbackSeconds > 0
-                ? 'bg-emerald-500 text-white cursor-wait'
+              isFallbackMode && fallbackSeconds === 0
+                ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-500/30'
+                : fallbackSeconds !== null && fallbackSeconds > 0
+                ? 'bg-slate-100 text-slate-400 cursor-wait'
                 : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/30'
             }`}
           >
@@ -126,7 +137,11 @@ const AccessGate: React.FC<AccessGateProps> = ({ siteSettings, onClose }) => {
               </>
             ) : fallbackSeconds !== null && fallbackSeconds > 0 ? (
               <>
-                <Timer className="animate-pulse" size={20} /> Unlocking in {fallbackSeconds}s...
+                <Timer className="animate-pulse" size={20} /> Verifying in {fallbackSeconds}s...
+              </>
+            ) : isFallbackMode && fallbackSeconds === 0 ? (
+              <>
+                <CheckCircle size={20} /> Complete Verification
               </>
             ) : (
               <>
