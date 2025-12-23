@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, Trash2, Edit2, X, Layers, 
   Video as VideoIcon, Upload, Image as ImageIcon, Link as LinkIcon,
-  RefreshCw, Check, Youtube, User as UserIcon, Shield, UserPlus, Settings, Globe, Key, Info, Zap, LayoutDashboard, ChevronDown, Users, Search, Code, CheckCircle, Database, FileText, Download
+  RefreshCw, Check, Youtube, User as UserIcon, Shield, UserPlus, Settings, Globe, Key, Info, Zap, LayoutDashboard, ChevronDown, Users, Search, Code, CheckCircle, Database, FileText, Download, Save
 } from 'lucide-react';
 import { Course, Chapter, Video, StaffMember, SiteSettings, Resource } from '../types';
 
@@ -212,6 +212,116 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {activeTab === 'staff' && isAdmin && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+           {/* Create New Staff Form */}
+           <div className="lg:col-span-1 bg-slate-900 text-white p-8 rounded-[2.5rem] h-fit">
+              <div className="flex items-center gap-4 mb-8">
+                 <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30"><UserPlus size={24}/></div>
+                 <div>
+                   <h3 className="font-black text-xl">Recruit Faculty</h3>
+                   <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Add Managers/Admins</p>
+                 </div>
+              </div>
+              <div className="space-y-5">
+                 <div className="space-y-2">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                   <input type="text" value={newStaff.name} onChange={e => setNewStaff({...newStaff, name: e.target.value})} className="w-full px-5 py-3 bg-slate-800 border border-slate-700 rounded-xl font-bold focus:border-blue-500 outline-none" placeholder="ex. Prof. Sharma" />
+                 </div>
+                 <div className="space-y-2">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                   <input type="email" value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})} className="w-full px-5 py-3 bg-slate-800 border border-slate-700 rounded-xl font-bold focus:border-blue-500 outline-none" placeholder="faculty@portal.com" />
+                 </div>
+                 <div className="space-y-2">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Access Role</label>
+                   <div className="grid grid-cols-2 gap-3">
+                      <button onClick={() => setNewStaff({...newStaff, role: 'manager'})} className={`py-3 rounded-xl font-black text-xs uppercase tracking-widest border transition-all ${newStaff.role === 'manager' ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}>Manager</button>
+                      <button onClick={() => setNewStaff({...newStaff, role: 'admin'})} className={`py-3 rounded-xl font-black text-xs uppercase tracking-widest border transition-all ${newStaff.role === 'admin' ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}>Admin</button>
+                   </div>
+                 </div>
+                 <button onClick={handleAddStaff} className="w-full bg-white text-slate-900 py-4 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-blue-50 transition-all mt-4 flex items-center justify-center gap-2">
+                   <Plus size={18} /> Grant Access
+                 </button>
+              </div>
+           </div>
+
+           {/* Staff List */}
+           <div className="lg:col-span-2 space-y-6">
+              <h3 className="text-xl font-black text-slate-800 px-2">Authorized Personnel</h3>
+              <div className="grid gap-4">
+                {staff.map(member => (
+                  <div key={member.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center justify-between group hover:shadow-lg transition-all">
+                     <div className="flex items-center gap-5">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black border ${member.role === 'admin' ? 'bg-amber-50 text-amber-500 border-amber-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
+                          {member.name.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-3">
+                            <h4 className="font-bold text-slate-900 text-lg">{member.name}</h4>
+                            <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${member.role === 'admin' ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>{member.role}</span>
+                          </div>
+                          <p className="text-slate-400 text-sm font-medium mt-0.5">{member.email}</p>
+                        </div>
+                     </div>
+                     {member.email !== 'r29878448@gmail.com' && (
+                       <button onClick={() => handleRemoveStaff(member.id)} className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={20}/></button>
+                     )}
+                  </div>
+                ))}
+              </div>
+           </div>
+        </div>
+      )}
+
+      {activeTab === 'config' && isAdmin && (
+        <div className="max-w-2xl mx-auto space-y-8">
+          <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm text-center">
+             <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[2rem] flex items-center justify-center text-white mx-auto mb-6 shadow-2xl shadow-indigo-500/30">
+               <Key size={36} />
+             </div>
+             <h2 className="text-2xl font-black text-slate-900 mb-2">Premium Access Gateway</h2>
+             <p className="text-slate-500 font-medium max-w-md mx-auto">Configure the monetization and access control layer. This integrates with URL shorteners to generate revenue/leads before unlocking content.</p>
+          </div>
+          
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 space-y-6">
+             <div className="flex items-center gap-3 border-b border-slate-100 pb-6 mb-2">
+               <Globe className="text-blue-500" size={24} />
+               <h3 className="font-black text-slate-800 text-lg">Shortener Configuration</h3>
+             </div>
+             
+             <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">API Endpoint URL</label>
+                  <input type="text" value={tempSettings.shortenerUrl} onChange={e => setTempSettings({...tempSettings, shortenerUrl: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-700 focus:border-blue-500 outline-none" placeholder="https://gplinks.in/api" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Publisher API Key</label>
+                  <div className="relative">
+                    <input type="text" value={tempSettings.shortenerApiKey} onChange={e => setTempSettings({...tempSettings, shortenerApiKey: e.target.value})} className="w-full px-6 py-4 pl-12 bg-slate-50 border border-slate-200 rounded-2xl font-mono font-bold text-slate-700 focus:border-blue-500 outline-none" placeholder="xxxxxxxxxxxxxxxx" />
+                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                  </div>
+                </div>
+             </div>
+
+             <div className="pt-4">
+                <button onClick={handleSaveSettings} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-blue-600 transition-all shadow-xl flex items-center justify-center gap-3">
+                  <Save size={20} /> Update Configuration
+                </button>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'students' && (
+        <div className="bg-white rounded-[3rem] p-16 text-center border border-slate-100 border-dashed">
+           <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300">
+             <Users size={40} />
+           </div>
+           <h3 className="text-xl font-black text-slate-900 mb-2">Student Registry</h3>
+           <p className="text-slate-400 font-medium">Student management is currently handled automatically via enrollment.</p>
         </div>
       )}
 
