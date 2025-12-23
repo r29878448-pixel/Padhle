@@ -2,25 +2,28 @@ export interface Resource {
   id: string;
   title: string;
   url: string; // Can be a URL or Base64 string
-  type: 'pdf' | 'link' | 'image';
+  type: 'pdf' | 'link';
 }
 
-export interface Video {
+export interface Lecture {
   id: string;
   title: string;
   youtubeId: string;
   duration: string;
-  thumbnail: string;
   description: string;
-  completed?: boolean;
+  resources: Resource[]; // Notes/PDFs specific to this lecture
 }
 
 export interface Chapter {
   id: string;
   title: string;
-  videos: Video[];
-  notes?: Resource[];
-  progress?: number; // 0-100
+  lectures: Lecture[];
+}
+
+export interface Subject {
+  id: string;
+  title: string;
+  chapters: Chapter[];
 }
 
 export interface Course {
@@ -33,9 +36,9 @@ export interface Course {
   students: number;
   image: string;
   category: string;
-  chapters: Chapter[];
+  subjects: Subject[]; // Changed from chapters to subjects
   shortLink?: string;
-  accessCode?: string; // Specific code for this batch
+  accessCode?: string;
 }
 
 export interface ChatMessage {

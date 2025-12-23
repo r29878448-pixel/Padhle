@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, Trash2, Edit2, X, 
   Video as VideoIcon, Upload, 
-  RefreshCw, Check, User as UserIcon, Shield, UserPlus, Globe, Key, Save, LayoutDashboard, ChevronDown, ChevronUp, FileText, Youtube, Image, Lock, Link as LinkIcon
+  RefreshCw, Check, User as UserIcon, Shield, UserPlus, Globe, Key, Save, LayoutDashboard, ChevronDown, ChevronUp, FileText, Youtube, Image, Lock, Link as LinkIcon, Layers, Folder
 } from 'lucide-react';
-import { Course, Chapter, Video, StaffMember, SiteSettings, Resource } from '../types';
+import { Course, Subject, Chapter, Lecture, StaffMember, SiteSettings, Resource } from '../types';
 import { subscribeToStaff, addStaffToDB, removeStaffFromDB, saveCourseToDB, deleteCourseFromDB, saveSiteSettings } from '../services/db';
 
 interface AdminPanelProps {
@@ -22,12 +22,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
-  // Accordion state for chapters
+  // Accordion state
+  const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
   const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Resource Upload Refs
   const resourceInputRef = useRef<HTMLInputElement>(null);
-  const [activeChapterForResource, setActiveChapterForResource] = useState<string | null>(null);
+  const [targetLectureForResource, setTargetLectureForResource] = useState<{subjId: string, chapId: string, lecId: string} | null>(null);
 
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [newStaff, setNewStaff] = useState({ name: '', email: '', password: '', role: 'manager' as 'manager' | 'admin' });
@@ -43,7 +46,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
     students: 0,
     category: 'Class 10',
     image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=1000',
-    chapters: [],
+    subjects: [], // Now using subjects
     shortLink: '',
     accessCode: 'STUDY-' + Math.floor(100000 + Math.random() * 900000)
   };
@@ -57,7 +60,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
     return () => unsubscribe();
   }, []);
 
-  // Helper to extract YouTube ID from a full link
   const extractYoutubeId = (url: string) => {
     if (!url) return '';
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -72,7 +74,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
         alert("This email is already registered.");
         return;
     }
-
     const staffMember: StaffMember = {
       id: `staff-${Date.now()}`,
       name: newStaff.name,
@@ -122,14 +123,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
     alert("Configuration saved successfully!");
   };
 
-  const handleUploadResource = (chapterId: string) => {
-    setActiveChapterForResource(chapterId);
+  // Resource Handling specific to Lecture
+  const triggerResourceUpload = (subjId: string, chapId: string, lecId: string) => {
+    setTargetLectureForResource({ subjId, chapId, lecId });
     resourceInputRef.current?.click();
   };
 
-  const onResourceFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleResourceFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !activeChapterForResource) return;
+    if (!file || !targetLectureForResource) return;
 
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -137,27 +139,88 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
         id: `res-${Date.now()}`,
         title: file.name,
         url: reader.result as string,
-        type: file.type.includes('pdf') ? 'pdf' : 'link'
+        type: 'pdf' // Only PDF upload for now via file input
       };
-
-      const updatedChapters = currentBatch.chapters.map(ch => {
-        if (ch.id === activeChapterForResource) {
-          return { ...ch, notes: [...(ch.notes || []), newResource] };
-        }
-        return ch;
-      });
-
-      setCurrentBatch({ ...currentBatch, chapters: updatedChapters });
-      setActiveChapterForResource(null);
+      
+      addResourceToLecture(targetLectureForResource, newResource);
+      setTargetLectureForResource(null);
     };
     reader.readAsDataURL(file);
+  };
+
+  const addResourceToLecture = (target: {subjId: string, chapId: string, lecId: string}, resource: Resource) => {
+      const updatedSubjects = currentBatch.subjects.map(sub => {
+          if (sub.id !== target.subjId) return sub;
+          return {
+              ...sub,
+              chapters: sub.chapters.map(chap => {
+                  if (chap.id !== target.chapId) return chap;
+                  return {
+                      ...chap,
+                      lectures: chap.lectures.map(lec => {
+                          if (lec.id !== target.lecId) return lec;
+                          return { ...lec, resources: [...(lec.resources || []), resource] };
+                      })
+                  };
+              })
+          };
+      });
+      setCurrentBatch({ ...currentBatch, subjects: updatedSubjects });
+  };
+
+  const addLinkToLecture = (subjId: string, chapId: string, lecId: string) => {
+      const newResource: Resource = { id: `res-${Date.now()}`, title: 'New Web Link', url: 'https://', type: 'link' };
+      addResourceToLecture({ subjId, chapId, lecId }, newResource);
+  };
+
+  const removeResourceFromLecture = (subjId: string, chapId: string, lecId: string, resId: string) => {
+     const updatedSubjects = currentBatch.subjects.map(sub => {
+          if (sub.id !== subjId) return sub;
+          return {
+              ...sub,
+              chapters: sub.chapters.map(chap => {
+                  if (chap.id !== chapId) return chap;
+                  return {
+                      ...chap,
+                      lectures: chap.lectures.map(lec => {
+                          if (lec.id !== lecId) return lec;
+                          return { ...lec, resources: lec.resources.filter(r => r.id !== resId) };
+                      })
+                  };
+              })
+          };
+      });
+      setCurrentBatch({ ...currentBatch, subjects: updatedSubjects });
+  };
+
+  const updateResourceDetails = (subjId: string, chapId: string, lecId: string, resId: string, field: 'title' | 'url', value: string) => {
+      const updatedSubjects = currentBatch.subjects.map(sub => {
+          if (sub.id !== subjId) return sub;
+          return {
+              ...sub,
+              chapters: sub.chapters.map(chap => {
+                  if (chap.id !== chapId) return chap;
+                  return {
+                      ...chap,
+                      lectures: chap.lectures.map(lec => {
+                          if (lec.id !== lecId) return lec;
+                          return { 
+                             ...lec, 
+                             resources: lec.resources.map(r => r.id === resId ? { ...r, [field]: value } : r) 
+                          };
+                      })
+                  };
+              })
+          };
+      });
+      setCurrentBatch({ ...currentBatch, subjects: updatedSubjects });
   };
 
   const isAdmin = userRole === 'admin';
 
   return (
     <div className="space-y-6 animate-fadeIn pb-20 text-left font-sans">
-      <input type="file" ref={resourceInputRef} className="hidden" accept=".pdf" onChange={onResourceFileSelect} />
+      <input type="file" ref={resourceInputRef} className="hidden" accept=".pdf" onChange={handleResourceFileSelect} />
       
       {/* Top Header */}
       <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
@@ -198,7 +261,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                   <div className="aspect-video rounded-xl overflow-hidden mb-4 relative">
                     <img src={course.image} className="w-full h-full object-cover" />
                     <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white px-2 py-1 rounded-lg text-[10px] font-black uppercase">
-                       {course.chapters.length} Modules
+                       {course.subjects?.length || 0} Subjects
                     </div>
                   </div>
                   <h3 className="font-bold text-slate-900 text-lg mb-1 truncate">{course.title}</h3>
@@ -330,128 +393,220 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                        </div>
                     </div>
 
-                    {/* Right Column: Curriculum */}
+                    {/* Right Column: Curriculum (Nested 3 Layers) */}
                     <div className="md:col-span-2 space-y-6">
                        <div className="flex items-center justify-between">
-                          <h3 className="font-black text-slate-900">Curriculum</h3>
-                          <button onClick={() => setCurrentBatch({...currentBatch, chapters: [...currentBatch.chapters, { id: `ch-${Date.now()}`, title: 'New Module', videos: [], notes: [] }]})} className="text-blue-600 text-xs font-black uppercase hover:underline flex items-center gap-1">
-                            <Plus size={14}/> Add Module
+                          <h3 className="font-black text-slate-900">Curriculum Structure</h3>
+                          <button onClick={() => setCurrentBatch({...currentBatch, subjects: [...(currentBatch.subjects || []), { id: `sub-${Date.now()}`, title: 'New Subject', chapters: [] }]})} className="text-blue-600 text-xs font-black uppercase hover:underline flex items-center gap-1">
+                            <Plus size={14}/> Add Subject
                           </button>
                        </div>
 
                        <div className="space-y-4">
-                          {currentBatch.chapters.map((chapter, index) => (
-                             <div key={chapter.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all">
-                                {/* Chapter Header */}
-                                <div className="p-4 flex items-center justify-between bg-slate-50 cursor-pointer" onClick={() => setExpandedChapter(expandedChapter === chapter.id ? null : chapter.id)}>
+                          {currentBatch.subjects?.map((subject, sIdx) => (
+                             <div key={subject.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                                {/* LEVEL 1: SUBJECT */}
+                                <div className="p-4 flex items-center justify-between bg-white cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => setExpandedSubject(expandedSubject === subject.id ? null : subject.id)}>
                                    <div className="flex items-center gap-3 flex-1">
-                                      <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-xs font-bold">{index + 1}</span>
+                                      <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+                                         <Layers size={16} />
+                                      </div>
                                       <input 
                                         type="text" 
-                                        value={chapter.title} 
+                                        value={subject.title} 
                                         onClick={(e) => e.stopPropagation()}
                                         onChange={(e) => setCurrentBatch({
                                           ...currentBatch, 
-                                          chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, title: e.target.value} : c)
+                                          subjects: currentBatch.subjects.map(s => s.id === subject.id ? {...s, title: e.target.value} : s)
                                         })}
-                                        className="bg-transparent font-bold text-slate-700 outline-none w-full"
-                                        placeholder="Module Name"
+                                        className="bg-transparent font-black text-slate-800 outline-none w-full text-lg"
+                                        placeholder="Subject Name (e.g. Physics)"
                                       />
                                    </div>
                                    <div className="flex items-center gap-2">
-                                      <button onClick={(e) => { e.stopPropagation(); setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.filter(c => c.id !== chapter.id)}); }} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
-                                      {expandedChapter === chapter.id ? <ChevronUp size={18} className="text-slate-400"/> : <ChevronDown size={18} className="text-slate-400"/>}
+                                      <button onClick={(e) => { e.stopPropagation(); setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.filter(s => s.id !== subject.id)}); }} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
+                                      {expandedSubject === subject.id ? <ChevronUp size={18} className="text-slate-400"/> : <ChevronDown size={18} className="text-slate-400"/>}
                                    </div>
                                 </div>
 
-                                {/* Chapter Body (Videos & Notes) */}
-                                {expandedChapter === chapter.id && (
-                                   <div className="p-4 space-y-6 border-t border-slate-100">
-                                      {/* Videos */}
-                                      <div className="space-y-3">
-                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Videos</p>
-                                         {chapter.videos.map(video => (
-                                           <div key={video.id} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                              <div className="w-8 h-8 bg-white text-red-600 rounded-lg flex items-center justify-center shrink-0 shadow-sm"><Youtube size={16}/></div>
-                                              <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                  <input 
-                                                    type="text" 
-                                                    placeholder="Video Title" 
-                                                    value={video.title} 
-                                                    onChange={e => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.map(v => v.id === video.id ? {...v, title: e.target.value} : v)} : c)})}
-                                                    className="w-full text-sm font-bold bg-white px-3 py-2 rounded-lg outline-none border border-transparent focus:border-blue-500 transition-all" 
-                                                  />
-                                                  <input 
-                                                    type="text" 
-                                                    placeholder="Paste YouTube Link Here" 
-                                                    value={video.youtubeId} 
-                                                    onChange={e => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.map(v => v.id === video.id ? {...v, youtubeId: e.target.value} : v)} : c)})}
-                                                    onBlur={(e) => {
-                                                       const cleanId = extractYoutubeId(e.target.value);
-                                                       if (cleanId !== e.target.value) {
-                                                         setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.map(v => v.id === video.id ? {...v, youtubeId: cleanId} : v)} : c)});
-                                                       }
-                                                    }}
-                                                    className="w-full text-xs font-mono bg-white px-3 py-2 rounded-lg outline-none text-slate-600 border border-transparent focus:border-blue-500 transition-all" 
-                                                  />
-                                              </div>
-                                              <button onClick={() => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: c.videos.filter(v => v.id !== video.id)} : c)})} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all self-end sm:self-center"><Trash2 size={16}/></button>
-                                           </div>
-                                         ))}
-                                         <button onClick={() => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, videos: [...c.videos, { id: `v-${Date.now()}`, title: '', youtubeId: '', duration: '00:00', thumbnail: '', description: '' }]} : c)})} className="w-full py-3 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 font-bold text-xs uppercase hover:border-blue-500 hover:text-blue-600 transition-all flex items-center justify-center gap-2">
-                                            <Plus size={16} /> Add Video Lecture
-                                         </button>
+                                {expandedSubject === subject.id && (
+                                   <div className="bg-slate-50 p-4 border-t border-slate-100 space-y-4">
+                                      <div className="flex justify-between items-center px-2">
+                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chapters</p>
+                                         <button onClick={() => {
+                                            const newChapter: Chapter = { id: `ch-${Date.now()}`, title: 'New Chapter', lectures: [] };
+                                            setCurrentBatch({
+                                               ...currentBatch,
+                                               subjects: currentBatch.subjects.map(s => s.id === subject.id ? {...s, chapters: [...s.chapters, newChapter]} : s)
+                                            });
+                                         }} className="text-blue-600 text-[10px] font-bold flex items-center gap-1 hover:underline"><Plus size={12}/> Add Chapter</button>
                                       </div>
 
-                                      {/* Notes */}
-                                      <div className="space-y-3 pt-4 border-t border-slate-100">
-                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Study Materials</p>
-                                         
-                                         {chapter.notes?.map(note => (
-                                          <div key={note.id} className="flex gap-3 items-center bg-slate-50 p-2 rounded-xl group/note">
-                                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${note.type === 'pdf' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'}`}>
-                                                {note.type === 'pdf' ? <FileText size={16}/> : <Globe size={16}/>}
-                                             </div>
-                                             
-                                             <div className="flex-1 grid grid-cols-2 gap-2">
-                                                <input 
-                                                   type="text" 
-                                                   placeholder="Title" 
-                                                   value={note.title}
-                                                   onChange={(e) => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, notes: c.notes?.map(n => n.id === note.id ? {...n, title: e.target.value} : n)} : c)})}
-                                                   className="bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold outline-none focus:border-blue-500"
-                                                />
-                                                <input 
-                                                   type="text" 
-                                                   placeholder={note.type === 'pdf' ? "PDF Data (Base64)" : "External URL"}
-                                                   value={note.url.substring(0, 50) + (note.url.length > 50 ? '...' : '')} 
-                                                   disabled={note.type === 'pdf'}
-                                                   onChange={(e) => {
-                                                      if(note.type !== 'pdf') {
-                                                         setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, notes: c.notes?.map(n => n.id === note.id ? {...n, url: e.target.value} : n)} : c)})
-                                                      }
-                                                   }}
-                                                   className={`bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-mono outline-none focus:border-blue-500 ${note.type === 'pdf' ? 'text-slate-400 cursor-not-allowed' : 'text-slate-600'}`}
-                                                   readOnly={note.type === 'pdf'}
-                                                />
-                                             </div>
+                                      {/* LEVEL 2: CHAPTERS */}
+                                      {subject.chapters.map((chapter, cIdx) => (
+                                         <div key={chapter.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                                            <div className="p-3 flex items-center justify-between cursor-pointer hover:bg-slate-50" onClick={() => setExpandedChapter(expandedChapter === chapter.id ? null : chapter.id)}>
+                                               <div className="flex items-center gap-3 flex-1">
+                                                  <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold">{cIdx + 1}</span>
+                                                  <input 
+                                                     type="text" 
+                                                     value={chapter.title} 
+                                                     onClick={(e) => e.stopPropagation()}
+                                                     onChange={(e) => setCurrentBatch({
+                                                        ...currentBatch,
+                                                        subjects: currentBatch.subjects.map(s => s.id === subject.id ? {
+                                                           ...s,
+                                                           chapters: s.chapters.map(c => c.id === chapter.id ? {...c, title: e.target.value} : c)
+                                                        } : s)
+                                                     })}
+                                                     className="bg-transparent font-bold text-slate-700 outline-none w-full text-sm"
+                                                     placeholder="Chapter Name"
+                                                  />
+                                               </div>
+                                               <div className="flex items-center gap-2">
+                                                  <button onClick={(e) => { 
+                                                     e.stopPropagation(); 
+                                                     setCurrentBatch({
+                                                        ...currentBatch,
+                                                        subjects: currentBatch.subjects.map(s => s.id === subject.id ? {
+                                                           ...s,
+                                                           chapters: s.chapters.filter(c => c.id !== chapter.id)
+                                                        } : s)
+                                                     });
+                                                  }} className="p-1.5 text-slate-300 hover:text-red-500 rounded-lg"><Trash2 size={14}/></button>
+                                                  {expandedChapter === chapter.id ? <ChevronUp size={16} className="text-slate-400"/> : <ChevronDown size={16} className="text-slate-400"/>}
+                                               </div>
+                                            </div>
 
-                                             <button onClick={() => setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, notes: c.notes?.filter(n => n.id !== note.id)} : c)})} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><X size={16}/></button>
-                                          </div>
-                                         ))}
+                                            {expandedChapter === chapter.id && (
+                                               <div className="bg-slate-100/50 p-3 border-t border-slate-100 space-y-3">
+                                                  {/* LEVEL 3: LECTURES */}
+                                                  {chapter.lectures.map(lecture => (
+                                                     <div key={lecture.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                                                        <div className="flex gap-3 items-start">
+                                                            <div className="w-8 h-8 bg-red-50 text-red-600 rounded-lg flex items-center justify-center shrink-0"><Youtube size={16}/></div>
+                                                            <div className="flex-1 space-y-2">
+                                                               <input 
+                                                                  type="text" 
+                                                                  placeholder="Lecture Title"
+                                                                  value={lecture.title}
+                                                                  onChange={(e) => setCurrentBatch({
+                                                                     ...currentBatch,
+                                                                     subjects: currentBatch.subjects.map(s => s.id === subject.id ? {
+                                                                        ...s,
+                                                                        chapters: s.chapters.map(c => c.id === chapter.id ? {
+                                                                           ...c,
+                                                                           lectures: c.lectures.map(l => l.id === lecture.id ? {...l, title: e.target.value} : l)
+                                                                        } : c)
+                                                                     } : s)
+                                                                  })}
+                                                                  className="w-full text-sm font-bold bg-slate-50 px-3 py-2 rounded-lg outline-none focus:bg-white focus:ring-2 ring-blue-500/10 border border-transparent focus:border-blue-500 transition-all"
+                                                               />
+                                                               <input 
+                                                                  type="text" 
+                                                                  placeholder="YouTube Link or ID"
+                                                                  value={lecture.youtubeId}
+                                                                  onChange={(e) => setCurrentBatch({
+                                                                     ...currentBatch,
+                                                                     subjects: currentBatch.subjects.map(s => s.id === subject.id ? {
+                                                                        ...s,
+                                                                        chapters: s.chapters.map(c => c.id === chapter.id ? {
+                                                                           ...c,
+                                                                           lectures: c.lectures.map(l => l.id === lecture.id ? {...l, youtubeId: e.target.value} : l)
+                                                                        } : c)
+                                                                     } : s)
+                                                                  })}
+                                                                  onBlur={(e) => {
+                                                                     const cleanId = extractYoutubeId(e.target.value);
+                                                                     if(cleanId !== e.target.value) {
+                                                                        setCurrentBatch({
+                                                                           ...currentBatch,
+                                                                           subjects: currentBatch.subjects.map(s => s.id === subject.id ? {
+                                                                              ...s,
+                                                                              chapters: s.chapters.map(c => c.id === chapter.id ? {
+                                                                                 ...c,
+                                                                                 lectures: c.lectures.map(l => l.id === lecture.id ? {...l, youtubeId: cleanId} : l)
+                                                                              } : c)
+                                                                           } : s)
+                                                                        });
+                                                                     }
+                                                                  }}
+                                                                  className="w-full text-xs font-mono text-slate-500 bg-slate-50 px-3 py-2 rounded-lg outline-none focus:bg-white focus:ring-2 ring-blue-500/10 border border-transparent focus:border-blue-500 transition-all"
+                                                               />
+                                                            </div>
+                                                            <button onClick={() => {
+                                                               setCurrentBatch({
+                                                                  ...currentBatch,
+                                                                  subjects: currentBatch.subjects.map(s => s.id === subject.id ? {
+                                                                     ...s,
+                                                                     chapters: s.chapters.map(c => c.id === chapter.id ? {
+                                                                        ...c,
+                                                                        lectures: c.lectures.filter(l => l.id !== lecture.id)
+                                                                     } : c)
+                                                                  } : s)
+                                                               })
+                                                            }} className="text-slate-300 hover:text-red-500 p-1"><Trash2 size={16}/></button>
+                                                        </div>
 
-                                         <div className="flex gap-2">
-                                             <button onClick={() => handleUploadResource(chapter.id)} className="flex-1 text-xs font-bold text-slate-500 hover:text-blue-600 border border-dashed border-slate-300 hover:border-blue-300 bg-white px-3 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2">
-                                                <Upload size={14}/> Upload PDF
-                                             </button>
-                                             <button onClick={() => {
-                                                const newLink: Resource = { id: `res-${Date.now()}`, title: 'New Link', url: '', type: 'link' };
-                                                setCurrentBatch({...currentBatch, chapters: currentBatch.chapters.map(c => c.id === chapter.id ? {...c, notes: [...(c.notes || []), newLink]} : c)});
-                                             }} className="flex-1 text-xs font-bold text-slate-500 hover:text-blue-600 border border-dashed border-slate-300 hover:border-blue-300 bg-white px-3 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2">
-                                                <LinkIcon size={14}/> Add Link
-                                             </button>
+                                                        {/* LECTURE RESOURCES */}
+                                                        <div className="pl-11">
+                                                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><Folder size={10}/> Attached Materials</p>
+                                                           <div className="space-y-2">
+                                                              {lecture.resources?.map(res => (
+                                                                 <div key={res.id} className="flex gap-2 items-center bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                                                    <span className={`p-1 rounded ${res.type === 'pdf' ? 'bg-red-100 text-red-500' : 'bg-blue-100 text-blue-500'}`}>
+                                                                       {res.type === 'pdf' ? <FileText size={12}/> : <Globe size={12}/>}
+                                                                    </span>
+                                                                    <div className="flex-1 grid grid-cols-2 gap-2">
+                                                                       <input 
+                                                                          value={res.title}
+                                                                          onChange={(e) => updateResourceDetails(subject.id, chapter.id, lecture.id, res.id, 'title', e.target.value)}
+                                                                          className="bg-transparent text-xs font-bold outline-none"
+                                                                          placeholder="Resource Title"
+                                                                       />
+                                                                       <input 
+                                                                          value={res.url.substring(0, 30) + '...'}
+                                                                          disabled={res.type === 'pdf'}
+                                                                          onChange={(e) => updateResourceDetails(subject.id, chapter.id, lecture.id, res.id, 'url', e.target.value)}
+                                                                          className="bg-transparent text-[10px] font-mono text-slate-400 outline-none"
+                                                                          placeholder="URL"
+                                                                       />
+                                                                    </div>
+                                                                    <button onClick={() => removeResourceFromLecture(subject.id, chapter.id, lecture.id, res.id)} className="text-slate-300 hover:text-red-500"><X size={14}/></button>
+                                                                 </div>
+                                                              ))}
+                                                           </div>
+                                                           <div className="flex gap-2 mt-2">
+                                                              <button onClick={() => triggerResourceUpload(subject.id, chapter.id, lecture.id)} className="px-3 py-1.5 bg-slate-50 text-slate-500 text-[10px] font-bold uppercase rounded-lg hover:bg-slate-100 transition-all flex items-center gap-1">
+                                                                 <Upload size={12}/> Upload PDF
+                                                              </button>
+                                                              <button onClick={() => addLinkToLecture(subject.id, chapter.id, lecture.id)} className="px-3 py-1.5 bg-slate-50 text-slate-500 text-[10px] font-bold uppercase rounded-lg hover:bg-slate-100 transition-all flex items-center gap-1">
+                                                                 <LinkIcon size={12}/> Add Link
+                                                              </button>
+                                                           </div>
+                                                        </div>
+                                                     </div>
+                                                  ))}
+                                                  
+                                                  <button onClick={() => {
+                                                     const newLecture: Lecture = { id: `lec-${Date.now()}`, title: '', youtubeId: '', duration: '00:00', description: '', resources: [] };
+                                                     setCurrentBatch({
+                                                        ...currentBatch,
+                                                        subjects: currentBatch.subjects.map(s => s.id === subject.id ? {
+                                                           ...s,
+                                                           chapters: s.chapters.map(c => c.id === chapter.id ? {
+                                                              ...c,
+                                                              lectures: [...c.lectures, newLecture]
+                                                           } : c)
+                                                        } : s)
+                                                     });
+                                                  }} className="w-full py-2 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-xs font-black uppercase hover:border-blue-500 hover:text-blue-500 transition-all flex items-center justify-center gap-2">
+                                                     <Plus size={14}/> Add Lecture
+                                                  </button>
+                                               </div>
+                                            )}
                                          </div>
-                                      </div>
+                                      ))}
                                    </div>
                                 )}
                              </div>
