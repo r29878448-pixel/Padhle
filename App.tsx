@@ -4,7 +4,7 @@ import {
   Home, BookOpen, User as UserIcon, 
   Menu, PlayCircle, GraduationCap, LogOut,
   Settings, ChevronRight, Clock, FileText, Download, Loader2, ExternalLink, Layers, Folder, Send, Zap, Play, Bell, Info, Sparkles, ChevronLeft,
-  Shield, ArrowRight
+  Shield, ArrowRight, Database
 } from 'lucide-react';
 import { Course, Lecture, SiteSettings, Chapter, Subject, Resource, Notice, Banner } from './types';
 import VideoPlayer from './components/VideoPlayer';
@@ -85,6 +85,7 @@ const App: React.FC = () => {
   };
 
   const navigateToCourse = (course: Course) => {
+    if (!course) return;
     setSelectedCourse(course);
     setActiveView('course');
     window.scrollTo(0, 0);
@@ -173,7 +174,6 @@ const App: React.FC = () => {
             <SidebarItem icon={<UserIcon size={22}/>} label="Profile Settings" active={activeView === 'profile'} onClick={() => {setActiveView('profile'); setIsSidebarOpen(false);}} />
             {user?.role !== 'student' && (
                <div className="mt-8 pt-8 border-t border-slate-100">
-                 {/* Fixed: Shield icon added to lucide-react imports */}
                  <p className="text-[10px] uppercase font-black text-slate-400 px-4 mb-4 tracking-widest flex items-center gap-2"><Shield className="text-blue-500" size={12}/> Control Center</p>
                  <SidebarItem icon={<Settings size={22}/>} label="Admin Panel" active={activeView === 'admin'} onClick={() => {setActiveView('admin'); setIsSidebarOpen(false);}} />
                </div>
@@ -238,8 +238,10 @@ const App: React.FC = () => {
                         <span className="bg-blue-600 text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest mb-6 inline-block">Featured Batch 2025</span>
                         <h1 className="text-5xl md:text-7xl font-black text-white leading-tight tracking-tighter mb-8">Master Your <span className="text-blue-500">Future.</span></h1>
                         <p className="text-slate-300 text-lg font-medium mb-10 leading-relaxed">Join 100k+ students learning with top India faculty. New Lakshya JEE 2025 Batch enrolling now.</p>
-                        {/* Fixed: ArrowRight icon added to lucide-react imports */}
-                        <button onClick={() => navigateToCourse(courses[0])} className="bg-white text-slate-900 px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-2xl flex items-center gap-3">
+                        <button 
+                          onClick={() => courses.length > 0 && navigateToCourse(courses[0])} 
+                          className="bg-white text-slate-900 px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-2xl flex items-center gap-3 disabled:opacity-50"
+                        >
                            Browse All Batches <ArrowRight size={20}/>
                         </button>
                       </div>
@@ -277,28 +279,36 @@ const App: React.FC = () => {
                 {/* COURSE BATCHES */}
                 <section>
                    <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-10 px-4">Premier Batches</h2>
-                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 px-4">
-                    {courses.map(course => (
-                      <div key={course.id} className="bg-white rounded-[3rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all border border-slate-100 cursor-pointer flex flex-col group" onClick={() => navigateToCourse(course)}>
-                        <div className="relative aspect-video overflow-hidden">
-                          <img src={course.image} alt={course.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                          <div className="absolute top-6 left-6 bg-slate-900/80 backdrop-blur-md text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest">
-                            {course.category}
+                   {courses.length > 0 ? (
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 px-4">
+                      {courses.map(course => (
+                        <div key={course.id} className="bg-white rounded-[3rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all border border-slate-100 cursor-pointer flex flex-col group" onClick={() => navigateToCourse(course)}>
+                          <div className="relative aspect-video overflow-hidden">
+                            <img src={course.image} alt={course.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                            <div className="absolute top-6 left-6 bg-slate-900/80 backdrop-blur-md text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest">
+                              {course.category}
+                            </div>
+                          </div>
+                          <div className="p-8 flex-1 flex flex-col">
+                            <h3 className="font-black text-2xl text-slate-900 mb-2 leading-tight group-hover:text-blue-600 transition-colors">{course.title}</h3>
+                            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest flex items-center gap-2 mb-8">
+                               <UserIcon size={14}/> {course.instructor}
+                            </p>
+                            <div className="mt-auto flex items-center justify-between pt-8 border-t border-slate-50">
+                              <span className="text-2xl font-black text-slate-900">₹{course.price}</span>
+                              <div className="bg-slate-50 text-slate-600 group-hover:bg-slate-900 group-hover:text-white px-8 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all">Explore Batch</div>
+                            </div>
                           </div>
                         </div>
-                        <div className="p-8 flex-1 flex flex-col">
-                          <h3 className="font-black text-2xl text-slate-900 mb-2 leading-tight group-hover:text-blue-600 transition-colors">{course.title}</h3>
-                          <p className="text-slate-400 text-sm font-bold uppercase tracking-widest flex items-center gap-2 mb-8">
-                             <UserIcon size={14}/> {course.instructor}
-                          </p>
-                          <div className="mt-auto flex items-center justify-between pt-8 border-t border-slate-50">
-                            <span className="text-2xl font-black text-slate-900">₹{course.price}</span>
-                            <div className="bg-slate-50 text-slate-600 group-hover:bg-slate-900 group-hover:text-white px-8 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all">Explore Batch</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                   ) : (
+                     <div className="bg-white p-20 rounded-[3rem] border-2 border-dashed border-slate-100 text-center">
+                        <Database className="mx-auto text-slate-200 mb-6" size={64} />
+                        <h3 className="text-xl font-black text-slate-800">No Batches Published Yet</h3>
+                        <p className="text-slate-400 mt-2 font-medium">As an admin, you can seed the 'Project 45' batch in the Control Center.</p>
+                     </div>
+                   )}
                 </section>
               </div>
             )}

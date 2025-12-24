@@ -4,11 +4,12 @@ import {
   Plus, Trash2, Edit2, X, 
   Video as VideoIcon, Upload, 
   RefreshCw, Check, User as UserIcon, Shield, UserPlus, Globe, Key, Save, LayoutDashboard, ChevronDown, ChevronUp, FileText, Youtube, Image, Lock, Link as LinkIcon, Layers, Folder, Info, Inbox, Sparkles, Send, ArrowRight, Zap,
-  Loader2, Bell, Megaphone
+  Loader2, Bell, Megaphone, Database
 } from 'lucide-react';
 import { Course, Subject, Chapter, Lecture, StaffMember, SiteSettings, Resource, Notice } from '../types';
 import { subscribeToStaff, addStaffToDB, removeStaffFromDB, saveCourseToDB, deleteCourseFromDB, saveSiteSettings, subscribeToTelegramFeed, TelegramPost, markPostAsIngested, subscribeToNotices, addNoticeToDB, deleteNoticeFromDB } from '../services/db';
 import { classifyContent } from '../services/geminiService';
+import { COURSES as DEMO_COURSES } from '../constants';
 
 interface AdminPanelProps {
   userRole: 'student' | 'admin' | 'manager';
@@ -53,8 +54,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
     return () => { unsubStaff(); unsubTG(); unsubNotices(); };
   }, []);
 
+  const handleSeedProject45 = async () => {
+    if (!confirm("This will seed the official 'Project 45 10th Batch' into your portal. Continue?")) return;
+    setSaveStatus('saving');
+    try {
+      for (const demoCourse of DEMO_COURSES) {
+        await saveCourseToDB(demoCourse);
+      }
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch (e) {
+      setSaveStatus('error');
+    }
+  };
+
   const handleAddNotice = async () => {
-    if (!newNotice.text.trim()) return;
+    if (!newNotice.text || !newNotice.text.trim()) return;
     await addNoticeToDB(newNotice);
     setNewNotice({ text: '', type: 'update' });
   };
@@ -73,14 +88,29 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
   const applyIngestion = async (postId: string) => {
     const post = telegramPosts.find(p => p.id === postId);
     const suggestion = sortSuggestions[postId];
-    if (!post || !suggestion) return;
+    if (!post || !suggestion || !suggestion.courseId) return;
+    
     const targetCourse = courses.find(c => c.id === suggestion.courseId);
     if (!targetCourse) return;
+    
     const updatedCourse = JSON.parse(JSON.stringify(targetCourse));
-    let targetSubject = updatedCourse.subjects.find((s: any) => s.title.toLowerCase().trim() === suggestion.subjectTitle.toLowerCase().trim());
-    if (!targetSubject) { targetSubject = { id: `sub-${Date.now()}`, title: suggestion.subjectTitle, chapters: [] }; updatedCourse.subjects.push(targetSubject); }
-    let targetChapter = targetSubject.chapters.find((c: any) => c.title.toLowerCase().trim() === suggestion.chapterTitle.toLowerCase().trim());
-    if (!targetChapter) { targetChapter = { id: `ch-${Date.now()}`, title: suggestion.chapterTitle, lectures: [] }; targetSubject.chapters.push(targetChapter); }
+    const cleanSubTitle = (suggestion.subjectTitle || "General").toLowerCase().trim();
+    const cleanChapTitle = (suggestion.chapterTitle || "Uncategorized").toLowerCase().trim();
+
+    let targetSubject = updatedCourse.subjects.find((s: any) => (s.title || "").toLowerCase().trim() === cleanSubTitle);
+    
+    if (!targetSubject) { 
+      targetSubject = { id: `sub-${Date.now()}`, title: suggestion.subjectTitle || "General", chapters: [] }; 
+      updatedCourse.subjects.push(targetSubject); 
+    }
+    
+    let targetChapter = targetSubject.chapters.find((c: any) => (c.title || "").toLowerCase().trim() === cleanChapTitle);
+    
+    if (!targetChapter) { 
+      targetChapter = { id: `ch-${Date.now()}`, title: suggestion.chapterTitle || "Uncategorized", lectures: [] }; 
+      targetSubject.chapters.push(targetChapter); 
+    }
+
     if (post.type === 'youtube' || post.type === 'video') {
       const newLecture: Lecture = { id: `lec-${Date.now()}`, title: post.title, videoUrl: post.url, duration: 'Live Sync', description: 'Auto-organized from Telegram channel.', resources: [] };
       targetChapter.lectures.push(newLecture);
@@ -92,9 +122,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
         targetChapter.lectures.push(pdfLecture);
       }
     }
+    
     await saveCourseToDB(updatedCourse);
     await markPostAsIngested(postId);
-    const remainingSuggestions = { ...sortSuggestions }; delete remainingSuggestions[postId]; setSortSuggestions(remainingSuggestions);
+    const remainingSuggestions = { ...sortSuggestions }; 
+    delete remainingSuggestions[postId]; 
+    setSortSuggestions(remainingSuggestions);
   };
 
   const handleAddStaff = async () => {
@@ -104,7 +137,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
   };
 
   const handleSaveBatch = async () => {
-    if (!currentBatch.title.trim()) return alert("Batch title is required.");
+    if (!currentBatch.title || !currentBatch.title.trim()) return alert("Batch title is required.");
     setSaveStatus('saving');
     try {
       await saveCourseToDB(editingId ? currentBatch : { ...currentBatch, id: `batch-${Date.now()}` });
@@ -150,7 +183,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
              </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-             {courses.map(course => (
+             {courses.length > 0 ? courses.map(course => (
                <div key={course.id} className="bg-white p-6 rounded-[3rem] border border-slate-100 hover:shadow-2xl transition-all group">
                   <div className="aspect-video rounded-[2rem] overflow-hidden mb-6 relative">
                     <img src={course.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
@@ -161,8 +194,33 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                     <button onClick={() => deleteCourseFromDB(course.id)} className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all"><Trash2 size={20}/></button>
                   </div>
                </div>
-             ))}
+             )) : (
+               <div className="col-span-full py-24 text-center">
+                  <Database className="mx-auto text-slate-200 mb-6" size={64} />
+                  <p className="text-slate-400 font-bold">No batches found in database.</p>
+                  <p className="text-[10px] uppercase tracking-widest font-black text-slate-300 mt-2">Initialize demo content in the 'System' tab.</p>
+               </div>
+             )}
           </div>
+        </div>
+      )}
+
+      {activeTab === 'config' && isAdmin && (
+        <div className="max-w-3xl space-y-8">
+           <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+              <h3 className="font-black text-slate-900 text-xl mb-8 flex items-center gap-3"><Sparkles className="text-blue-600" size={24}/> Quick Setup Utilities</h3>
+              <div className="space-y-6">
+                 <div className="p-8 bg-blue-50/50 rounded-[2rem] border border-blue-100 flex flex-col sm:flex-row items-center justify-between gap-6">
+                    <div className="flex-1">
+                       <p className="font-black text-slate-900 text-lg">Project 45 Seed</p>
+                       <p className="text-xs text-slate-500 font-medium leading-relaxed mt-2">Instantly upload the official Class 10th Project 45 batch structure with all subjects, chapters, and sample lectures.</p>
+                    </div>
+                    <button onClick={handleSeedProject45} disabled={saveStatus === 'saving'} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-xl shadow-blue-500/20">
+                       {saveStatus === 'saving' ? <Loader2 className="animate-spin" size={18}/> : <Database size={18}/>} Seed Project 45
+                    </button>
+                 </div>
+              </div>
+           </div>
         </div>
       )}
 
@@ -197,7 +255,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
         </div>
       )}
 
-      {/* Inbox Ingestor code remains same as previous version but integrated in this UI */}
       {activeTab === 'inbox' && (
         <div className="space-y-8">
            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-900 p-10 rounded-[3.5rem] text-white shadow-2xl">
@@ -244,7 +301,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
         </div>
       )}
 
-      {/* Staff and Config sections */}
       {activeTab === 'staff' && isAdmin && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
            <div className="lg:col-span-1 bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
