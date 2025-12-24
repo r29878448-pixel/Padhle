@@ -3,10 +3,24 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, Trash2, X, 
   Upload, Check, LayoutDashboard, ChevronDown, ChevronUp, FileText, Image, Lock, Link as LinkIcon, Layers, Folder, Inbox, Sparkles, Zap,
-  Loader2, Database, ClipboardCheck, Settings as SettingsIcon, Globe, User as UserIcon, Bell
+  Loader2, Database, ClipboardCheck, Settings as SettingsIcon, Globe, User as UserIcon, Bell, Shield, UserPlus, Save, Megaphone,
+  Key, Info
 } from 'lucide-react';
 import { Course, Subject, Chapter, Lecture, StaffMember, SiteSettings, Resource, Notice } from '../types';
-import { subscribeToStaff, saveCourseToDB, deleteCourseFromDB, subscribeToTelegramFeed, TelegramPost, markPostAsIngested, subscribeToNotices, addNoticeToDB, deleteNoticeFromDB } from '../services/db';
+import { 
+  subscribeToStaff, 
+  saveCourseToDB, 
+  deleteCourseFromDB, 
+  subscribeToTelegramFeed, 
+  TelegramPost, 
+  markPostAsIngested, 
+  subscribeToNotices, 
+  addNoticeToDB, 
+  deleteNoticeFromDB,
+  addStaffToDB,
+  removeStaffFromDB,
+  saveSiteSettings
+} from '../services/db';
 import { classifyContent } from '../services/geminiService';
 
 interface AdminPanelProps {
@@ -32,7 +46,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
 
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [notices, setNotices] = useState<Notice[]>([]);
-  const [newNotice, setNewNotice] = useState({ text: '', type: 'update' as any });
+  
+  // Form States
+  const [newNotice, setNewNotice] = useState({ text: '', type: 'update' as Notice['type'] });
+  const [newStaff, setNewStaff] = useState({ name: '', email: '', password: '', role: 'manager' as 'manager' | 'admin' });
+  const [tempSettings, setTempSettings] = useState<SiteSettings>(siteSettings);
 
   const [telegramPosts, setTelegramPosts] = useState<TelegramPost[]>([]);
   const [isSorting, setIsSorting] = useState(false);
@@ -56,6 +74,39 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
     navigator.clipboard.writeText(url);
     setCopiedId(lectureId);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleAddNotice = async () => {
+    if (!newNotice.text.trim()) return;
+    setSaveStatus('saving');
+    await addNoticeToDB(newNotice);
+    setNewNotice({ text: '', type: 'update' });
+    setSaveStatus('success');
+    setTimeout(() => setSaveStatus('idle'), 2000);
+  };
+
+  const handleAddStaff = async () => {
+    if (!newStaff.name || !newStaff.email || !newStaff.password) {
+      alert("All fields are mandatory for faculty registration.");
+      return;
+    }
+    setSaveStatus('saving');
+    await addStaffToDB({
+      id: `staff-${Date.now()}`,
+      ...newStaff,
+      joinedAt: new Date().toLocaleDateString()
+    });
+    setNewStaff({ name: '', email: '', password: '', role: 'manager' });
+    setSaveStatus('success');
+    setTimeout(() => setSaveStatus('idle'), 2000);
+  };
+
+  const handleSaveConfig = async () => {
+    setSaveStatus('saving');
+    await saveSiteSettings(tempSettings);
+    setSiteSettings(tempSettings);
+    setSaveStatus('success');
+    setTimeout(() => setSaveStatus('idle'), 2000);
   };
 
   const handleAISortAll = async () => {
@@ -130,7 +181,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
            </div>
         </div>
         
-        {/* SCROLLABLE TABS FIX */}
         <div className="flex bg-slate-100 p-1 border border-slate-200 overflow-x-auto max-w-full no-scrollbar rounded-none">
            <button onClick={() => setActiveTab('batches')} className={`px-5 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'batches' ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-500'}`}>Curriculum</button>
            <button onClick={() => setActiveTab('inbox')} className={`px-5 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${activeTab === 'inbox' ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-500'}`}>
@@ -221,10 +271,152 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
           </div>
         )}
 
-        {(activeTab === 'notices' || activeTab === 'staff' || activeTab === 'config') && (
-           <div className="py-24 text-center text-slate-300 border border-dashed border-slate-200">
-              <SettingsIcon size={40} className="mx-auto mb-4 opacity-20" />
-              <p className="text-[10px] font-black uppercase tracking-widest">Section under maintenance</p>
+        {activeTab === 'notices' && (
+          <div className="space-y-8 animate-fadeIn">
+            <div className="bg-slate-50 p-6 border border-slate-200 space-y-4">
+              <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-2"><Megaphone size={16} className="text-blue-600"/> Broadcast New Update</h3>
+              <div className="flex flex-col md:flex-row gap-4">
+                <input 
+                  type="text" 
+                  placeholder="Notification message for all students..." 
+                  value={newNotice.text} 
+                  onChange={e => setNewNotice({...newNotice, text: e.target.value})}
+                  className="flex-1 px-4 py-3 bg-white border border-slate-300 font-bold text-xs uppercase outline-none focus:border-blue-500 rounded-none"
+                />
+                <select 
+                  value={newNotice.type} 
+                  onChange={e => setNewNotice({...newNotice, type: e.target.value as any})}
+                  className="px-4 py-3 bg-white border border-slate-300 font-black text-[10px] uppercase outline-none rounded-none"
+                >
+                  <option value="update">General Update</option>
+                  <option value="urgent">Urgent Alert</option>
+                  <option value="new_batch">New Batch Launch</option>
+                </select>
+                <button onClick={handleAddNotice} className="bg-slate-900 text-white px-8 py-3 font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-md">Initialize Notice</button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {notices.map(notice => (
+                <div key={notice.id} className="p-5 border border-slate-100 flex items-center justify-between bg-white hover:border-slate-300 transition-all">
+                  <div className="flex items-center gap-5">
+                    <div className={`w-10 h-10 flex items-center justify-center ${notice.type === 'urgent' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
+                      <Bell size={18} />
+                    </div>
+                    <div>
+                      <p className="font-black text-xs text-slate-800 uppercase tracking-tight">{notice.text}</p>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">{new Date(notice.timestamp).toLocaleString()} • {notice.type.replace('_', ' ')}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => deleteNoticeFromDB(notice.id)} className="text-slate-200 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'staff' && isAdmin && (
+          <div className="space-y-8 animate-fadeIn">
+            <div className="bg-slate-50 p-6 border border-slate-200 space-y-4">
+              <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-2"><UserPlus size={16} className="text-blue-600"/> Register New Faculty</h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <input type="text" placeholder="Full Name" value={newStaff.name} onChange={e => setNewStaff({...newStaff, name: e.target.value})} className="px-4 py-3 bg-white border border-slate-300 font-bold text-xs uppercase outline-none rounded-none" />
+                <input type="email" placeholder="Email" value={newStaff.email} onChange={e => setNewStaff({...newStaff, email: e.target.value})} className="px-4 py-3 bg-white border border-slate-300 font-bold text-xs uppercase outline-none rounded-none" />
+                <input type="password" placeholder="Access Password" value={newStaff.password} onChange={e => setNewStaff({...newStaff, password: e.target.value})} className="px-4 py-3 bg-white border border-slate-300 font-bold text-xs uppercase outline-none rounded-none" />
+                <select value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value as any})} className="px-4 py-3 bg-white border border-slate-300 font-black text-[10px] uppercase outline-none rounded-none">
+                  <option value="manager">Manager</option>
+                  <option value="admin">Administrator</option>
+                </select>
+              </div>
+              <button onClick={handleAddStaff} className="bg-slate-900 text-white px-8 py-3 font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-md">Register Faculty Account</button>
+            </div>
+
+            <div className="border border-slate-200 overflow-hidden">
+               <table className="w-full text-left">
+                  <thead className="bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest">
+                     <tr>
+                        <th className="px-6 py-4">Identity</th>
+                        <th className="px-6 py-4">Role</th>
+                        <th className="px-6 py-4">Joined</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                     {staff.map(member => (
+                        <tr key={member.id} className="hover:bg-slate-50 transition-colors">
+                           <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                 <div className="w-8 h-8 bg-blue-50 text-blue-600 flex items-center justify-center font-black text-xs uppercase">{member.name[0]}</div>
+                                 <div>
+                                    <p className="font-black text-xs text-slate-900 uppercase">{member.name}</p>
+                                    <p className="text-[9px] font-bold text-slate-400">{member.email}</p>
+                                 </div>
+                              </div>
+                           </td>
+                           <td className="px-6 py-4">
+                              <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-widest border ${member.role === 'admin' ? 'border-amber-200 text-amber-600 bg-amber-50' : 'border-blue-200 text-blue-600 bg-blue-50'}`}>{member.role}</span>
+                           </td>
+                           <td className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase">{member.joinedAt}</td>
+                           <td className="px-6 py-4 text-right">
+                              {member.email !== 'r29878448@gmail.com' && (
+                                <button onClick={() => removeStaffFromDB(member.id)} className="text-slate-200 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
+                              )}
+                           </td>
+                        </tr>
+                     ))}
+                  </tbody>
+               </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'config' && isAdmin && (
+           <div className="space-y-8 animate-fadeIn max-w-2xl">
+              <div className="bg-white border border-slate-200 p-8 space-y-6">
+                 <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-2 border-b border-slate-100 pb-3"><SettingsIcon size={16} className="text-blue-600"/> Infrastructure Settings</h3>
+                 
+                 <div className="space-y-2">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Link Shortener Service API</label>
+                    <div className="relative">
+                       <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                       <input 
+                          type="text" 
+                          placeholder="Shortener API Endpoint" 
+                          value={tempSettings.shortenerUrl} 
+                          onChange={e => setTempSettings({...tempSettings, shortenerUrl: e.target.value})}
+                          className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 font-bold text-xs outline-none focus:border-blue-500 rounded-none" 
+                       />
+                    </div>
+                 </div>
+
+                 <div className="space-y-2">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Master API Key</label>
+                    <div className="relative">
+                       <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                       <input 
+                          type="password" 
+                          placeholder="Secret Verification Key" 
+                          value={tempSettings.shortenerApiKey} 
+                          onChange={e => setTempSettings({...tempSettings, shortenerApiKey: e.target.value})}
+                          className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 font-bold text-xs outline-none focus:border-blue-500 rounded-none" 
+                       />
+                    </div>
+                 </div>
+
+                 <div className="pt-6 border-t border-slate-50 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                       {saveStatus === 'success' && <div className="text-emerald-600 font-black text-[8px] uppercase tracking-widest flex items-center gap-1 animate-fadeIn"><Check size={10}/> Configuration Live</div>}
+                    </div>
+                    <button onClick={handleSaveConfig} className="bg-slate-900 text-white px-10 py-4 font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg flex items-center gap-2">
+                       {saveStatus === 'saving' ? <Loader2 className="animate-spin" size={14}/> : <Save size={14}/>} Update Configuration
+                    </button>
+                 </div>
+              </div>
+
+              <div className="bg-blue-50/50 border border-blue-100 p-6 space-y-3">
+                 <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2"><Info size={12}/> Technical Note</p>
+                 <p className="text-[11px] font-medium text-slate-600 leading-relaxed uppercase tracking-tight">Updating these settings affects the direct link generation and automated verification processes across the entire portal immediately.</p>
+              </div>
            </div>
         )}
       </div>
