@@ -5,37 +5,49 @@
 
 :root {
   font-family: 'Inter', sans-serif;
-  background-color: #f8fafc;
+  background-color: #ffffff;
+  --primary: #1a73e8;
+}
+
+body {
+  color: #0f172a;
+  overflow-x: hidden;
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+  background: #e2e8f0;
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #cbd5e1;
 }
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 
-@keyframes marquee {
-  0% { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-marquee {
-  animation: marquee 20s linear infinite;
-  display: inline-block;
-  white-space: nowrap;
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.pw-shadow {
+  box-shadow: 0 4px 20px -2px rgba(26, 115, 232, 0.1);
+}
+
+.pw-gradient {
+  background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
 }
