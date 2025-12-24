@@ -202,20 +202,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
           <div className="space-y-6 animate-fadeIn">
             <div className="flex justify-between items-center">
                <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Active Batches</h2>
-               <button onClick={() => { setCurrentBatch(emptyBatch); setEditingId(null); setIsModalOpen(true); }} className="bg-blue-600 text-white px-6 py-3 font-black text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-md">
+               <button onClick={() => { setCurrentBatch(emptyBatch); setEditingId(null); setIsModalOpen(true); }} className="bg-blue-600 text-white px-6 py-3 font-black text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-md rounded-none">
                  <Plus size={16} /> New Batch
                </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                {courses.length > 0 ? courses.map(course => (
-                 <div key={course.id} className="bg-slate-50 p-5 border border-slate-200 group hover:border-blue-500 transition-all">
-                    <div className="aspect-video overflow-hidden mb-4 border border-slate-200">
-                      <img src={course.image} className="w-full h-full object-cover" />
+                 <div key={course.id} className="bg-slate-50 p-5 border border-slate-200 group hover:border-blue-500 transition-all rounded-none">
+                    <div className="aspect-video overflow-hidden mb-4 border border-slate-200 rounded-none relative">
+                      <img src={course.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                     </div>
                     <h3 className="font-black text-slate-900 text-base mb-4 truncate uppercase tracking-tight">{course.title}</h3>
                     <div className="flex gap-2">
-                      <button onClick={() => { setCurrentBatch(course); setEditingId(course.id); setIsModalOpen(true); }} className="flex-1 bg-slate-900 text-white py-2.5 font-black text-[9px] uppercase tracking-widest hover:bg-blue-600 transition-all">Manage</button>
-                      <button onClick={() => deleteCourseFromDB(course.id)} className="p-2.5 bg-red-50 text-red-500 border border-red-100 hover:bg-red-500 hover:text-white transition-all"><Trash2 size={18}/></button>
+                      <button onClick={() => { setCurrentBatch(course); setEditingId(course.id); setIsModalOpen(true); }} className="flex-1 bg-slate-900 text-white py-2.5 font-black text-[9px] uppercase tracking-widest hover:bg-blue-600 transition-all rounded-none">Manage</button>
+                      <button onClick={() => deleteCourseFromDB(course.id)} className="p-2.5 bg-red-50 text-red-500 border border-red-100 hover:bg-red-500 hover:text-white transition-all rounded-none"><Trash2 size={18}/></button>
                     </div>
                  </div>
                )) : (
@@ -230,12 +230,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
 
         {activeTab === 'inbox' && (
           <div className="space-y-6 animate-fadeIn">
-             <div className="bg-slate-900 p-8 text-white border border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6">
+             <div className="bg-slate-900 p-8 text-white border border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6 rounded-none">
                 <div className="text-left">
                   <h2 className="text-2xl font-black tracking-tight flex items-center gap-3"><Zap className="text-blue-500 fill-blue-500" size={28}/> AI Ingestor</h2>
                   <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mt-1">Live Academic Pipeline</p>
                 </div>
-                <button onClick={handleAISortAll} disabled={isSorting || telegramPosts.filter(p => !p.isIngested).length === 0} className="bg-blue-600 text-white px-8 py-4 font-black text-[10px] uppercase tracking-widest hover:bg-blue-500 transition-all flex items-center gap-3 shadow-lg disabled:opacity-50">
+                <button onClick={handleAISortAll} disabled={isSorting || telegramPosts.filter(p => !p.isIngested).length === 0} className="bg-blue-600 text-white px-8 py-4 font-black text-[10px] uppercase tracking-widest hover:bg-blue-500 transition-all flex items-center gap-3 shadow-lg disabled:opacity-50 rounded-none">
                   {isSorting ? <Loader2 className="animate-spin" size={16}/> : <Sparkles size={16}/>} Scan Telegram Feed
                 </button>
              </div>
@@ -244,7 +244,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                 {telegramPosts.filter(p => !p.isIngested).map(post => {
                    const sug = sortSuggestions[post.id];
                    return (
-                    <div key={post.id} className="bg-white p-5 border border-slate-200 flex flex-col lg:flex-row lg:items-center gap-6 group hover:border-blue-400 transition-all">
+                    <div key={post.id} className="bg-white p-5 border border-slate-200 flex flex-col lg:flex-row lg:items-center gap-6 group hover:border-blue-400 transition-all rounded-none">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <span className="bg-blue-50 text-blue-600 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest border border-blue-100">{post.type}</span>
@@ -258,7 +258,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                               <p className="text-[7px] font-black text-blue-600 uppercase tracking-widest">Target Mapping</p>
                               <p className="text-[11px] font-bold text-slate-800 uppercase">{courses.find(c => c.id === sug.courseId)?.title || "General"}</p>
                            </div>
-                           <button onClick={() => applyIngestion(post.id)} className="bg-slate-900 text-white px-5 py-2 font-black text-[8px] uppercase tracking-widest hover:bg-blue-600 transition-all">
+                           <button onClick={() => applyIngestion(post.id)} className="bg-slate-900 text-white px-5 py-2 font-black text-[8px] uppercase tracking-widest hover:bg-blue-600 transition-all rounded-none">
                               <Check size={14}/> Publish
                            </button>
                         </div>
@@ -273,7 +273,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
 
         {activeTab === 'notices' && (
           <div className="space-y-8 animate-fadeIn">
-            <div className="bg-slate-50 p-6 border border-slate-200 space-y-4">
+            <div className="bg-slate-50 p-6 border border-slate-200 space-y-4 rounded-none">
               <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-2"><Megaphone size={16} className="text-blue-600"/> Broadcast New Update</h3>
               <div className="flex flex-col md:flex-row gap-4">
                 <input 
@@ -292,13 +292,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                   <option value="urgent">Urgent Alert</option>
                   <option value="new_batch">New Batch Launch</option>
                 </select>
-                <button onClick={handleAddNotice} className="bg-slate-900 text-white px-8 py-3 font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-md">Initialize Notice</button>
+                <button onClick={handleAddNotice} className="bg-slate-900 text-white px-8 py-3 font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-md rounded-none">Initialize Notice</button>
               </div>
             </div>
 
             <div className="space-y-4">
               {notices.map(notice => (
-                <div key={notice.id} className="p-5 border border-slate-100 flex items-center justify-between bg-white hover:border-slate-300 transition-all">
+                <div key={notice.id} className="p-5 border border-slate-100 flex items-center justify-between bg-white hover:border-slate-300 transition-all rounded-none">
                   <div className="flex items-center gap-5">
                     <div className={`w-10 h-10 flex items-center justify-center ${notice.type === 'urgent' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
                       <Bell size={18} />
@@ -317,7 +317,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
 
         {activeTab === 'staff' && isAdmin && (
           <div className="space-y-8 animate-fadeIn">
-            <div className="bg-slate-50 p-6 border border-slate-200 space-y-4">
+            <div className="bg-slate-50 p-6 border border-slate-200 space-y-4 rounded-none">
               <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-2"><UserPlus size={16} className="text-blue-600"/> Register New Faculty</h3>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <input type="text" placeholder="Full Name" value={newStaff.name} onChange={e => setNewStaff({...newStaff, name: e.target.value})} className="px-4 py-3 bg-white border border-slate-300 font-bold text-xs uppercase outline-none rounded-none" />
@@ -328,10 +328,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                   <option value="admin">Administrator</option>
                 </select>
               </div>
-              <button onClick={handleAddStaff} className="bg-slate-900 text-white px-8 py-3 font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-md">Register Faculty Account</button>
+              <button onClick={handleAddStaff} className="bg-slate-900 text-white px-8 py-3 font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-md rounded-none">Register Faculty Account</button>
             </div>
 
-            <div className="border border-slate-200 overflow-hidden">
+            <div className="border border-slate-200 overflow-hidden rounded-none">
                <table className="w-full text-left">
                   <thead className="bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest">
                      <tr>
@@ -372,7 +372,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
 
         {activeTab === 'config' && isAdmin && (
            <div className="space-y-8 animate-fadeIn max-w-2xl">
-              <div className="bg-white border border-slate-200 p-8 space-y-6">
+              <div className="bg-white border border-slate-200 p-8 space-y-6 rounded-none">
                  <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-2 border-b border-slate-100 pb-3"><SettingsIcon size={16} className="text-blue-600"/> Infrastructure Settings</h3>
                  
                  <div className="space-y-2">
@@ -407,13 +407,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                     <div className="flex items-center gap-2">
                        {saveStatus === 'success' && <div className="text-emerald-600 font-black text-[8px] uppercase tracking-widest flex items-center gap-1 animate-fadeIn"><Check size={10}/> Configuration Live</div>}
                     </div>
-                    <button onClick={handleSaveConfig} className="bg-slate-900 text-white px-10 py-4 font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg flex items-center gap-2">
+                    <button onClick={handleSaveConfig} className="bg-slate-900 text-white px-10 py-4 font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg flex items-center gap-2 rounded-none">
                        {saveStatus === 'saving' ? <Loader2 className="animate-spin" size={14}/> : <Save size={14}/>} Update Configuration
                     </button>
                  </div>
               </div>
 
-              <div className="bg-blue-50/50 border border-blue-100 p-6 space-y-3">
+              <div className="bg-blue-50/50 border border-blue-100 p-6 space-y-3 rounded-none">
                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2"><Info size={12}/> Technical Note</p>
                  <p className="text-[11px] font-medium text-slate-600 leading-relaxed uppercase tracking-tight">Updating these settings affects the direct link generation and automated verification processes across the entire portal immediately.</p>
               </div>
@@ -421,7 +421,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
         )}
       </div>
 
-      {/* MODAL FIX */}
+      {/* MODAL SECTION */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-sm animate-fadeIn">
            <div className="bg-white w-full max-w-5xl h-[95vh] rounded-none shadow-2xl flex flex-col overflow-hidden border border-slate-800">
@@ -435,9 +435,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
               <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     <div className="lg:col-span-4 space-y-6">
-                       <div className="bg-white p-6 border border-slate-200 space-y-5">
+                       <div className="bg-white p-6 border border-slate-200 space-y-5 rounded-none">
                           <h3 className="font-black text-slate-900 text-[10px] uppercase tracking-widest border-b border-slate-100 pb-2">Batch Info</h3>
-                          <div className="aspect-video bg-slate-50 border border-dashed border-slate-300 flex flex-col items-center justify-center cursor-pointer group overflow-hidden" onClick={() => fileInputRef.current?.click()}>
+                          <div className="aspect-video bg-slate-50 border border-dashed border-slate-300 flex flex-col items-center justify-center cursor-pointer group overflow-hidden rounded-none" onClick={() => fileInputRef.current?.click()}>
                              {currentBatch.image ? <img src={currentBatch.image} className="w-full h-full object-cover" /> : <Upload size={24} className="text-slate-300"/>}
                              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onloadend = () => setCurrentBatch({...currentBatch, image: r.result as string}); r.readAsDataURL(f); } }} />
                           </div>
@@ -454,7 +454,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                        </div>
                        <div className="space-y-4">
                           {currentBatch.subjects?.map((sub) => (
-                             <div key={sub.id} className="bg-white border border-slate-200">
+                             <div key={sub.id} className="bg-white border border-slate-200 rounded-none">
                                 <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => setExpandedSubject(expandedSubject === sub.id ? null : sub.id)}>
                                    <div className="flex items-center gap-3 flex-1">
                                       <Layers size={18} className="text-blue-600"/>
@@ -468,7 +468,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                                 {expandedSubject === sub.id && (
                                    <div className="p-4 border-t border-slate-100 bg-slate-50/30 space-y-4">
                                       {sub.chapters.map((chap) => (
-                                         <div key={chap.id} className="bg-white border border-slate-200 shadow-sm">
+                                         <div key={chap.id} className="bg-white border border-slate-200 shadow-sm rounded-none">
                                             <div className="p-3 bg-slate-100/50 flex items-center justify-between cursor-pointer" onClick={() => setExpandedChapter(expandedChapter === chap.id ? null : chap.id)}>
                                                <div className="flex items-center gap-2 flex-1"><Folder size={16} className="text-slate-400"/><input type="text" value={chap.title} onClick={e => e.stopPropagation()} onChange={e => setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, title: e.target.value} : c)} : s)})} className="bg-transparent font-black text-slate-700 outline-none w-full text-xs uppercase" /></div>
                                                <div className="flex items-center gap-2"><button onClick={e => { e.stopPropagation(); setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.filter(c => c.id !== chap.id)} : s)}); }} className="p-1.5 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={14}/></button>{expandedChapter === chap.id ? <ChevronUp size={18}/> : <ChevronDown size={18}/>}</div>
@@ -476,14 +476,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                                             {expandedChapter === chap.id && (
                                                <div className="p-4 border-t bg-white space-y-4">
                                                   {chap.lectures.map(lec => (
-                                                     <div key={lec.id} className="bg-slate-50 p-4 border border-slate-200 flex flex-col gap-3">
+                                                     <div key={lec.id} className="bg-slate-50 p-4 border border-slate-200 flex flex-col gap-3 rounded-none">
                                                         <div className="flex justify-between items-start gap-4">
-                                                           <input value={lec.title} onChange={e => setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, lectures: c.lectures.map(l => l.id === lec.id ? {...l, title: e.target.value} : l)} : c)} : s)})} className="flex-1 bg-white px-3 py-2 border border-slate-200 font-bold text-[10px] outline-none uppercase" placeholder="Lecture Title" />
+                                                           <input value={lec.title} onChange={e => setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, lectures: c.lectures.map(l => l.id === lec.id ? {...l, title: e.target.value} : l)} : c)} : s)})} className="flex-1 bg-white px-3 py-2 border border-slate-200 font-bold text-[10px] outline-none uppercase rounded-none" placeholder="Lecture Title" />
                                                            <div className="flex items-center gap-2">
-                                                              {isAdmin && (
+                                                              {(isAdmin || userRole === 'manager') && (
                                                                 <button 
                                                                   onClick={() => copyDirectLink(currentBatch.id, lec.id)}
-                                                                  className={`px-3 py-2 border transition-all flex items-center gap-2 font-black text-[8px] uppercase tracking-widest ${copiedId === lec.id ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600'}`}
+                                                                  className={`px-3 py-2 border transition-all flex items-center gap-2 font-black text-[8px] uppercase tracking-widest rounded-none ${copiedId === lec.id ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600'}`}
                                                                 >
                                                                   {copiedId === lec.id ? <ClipboardCheck size={12}/> : <LinkIcon size={12}/>} Share
                                                                 </button>
@@ -491,15 +491,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                                                               <button onClick={() => setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, lectures: c.lectures.filter(l => l.id !== lec.id)} : c)} : s)})} className="p-1.5 text-red-200 hover:text-red-500 transition-colors"><X size={18}/></button>
                                                            </div>
                                                         </div>
-                                                        <input value={lec.videoUrl} onChange={e => setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, lectures: c.lectures.map(l => l.id === lec.id ? {...l, videoUrl: e.target.value} : l)} : c)} : s)})} className="w-full bg-white px-3 py-2 border border-slate-200 text-[9px] font-mono text-slate-500 outline-none" placeholder="Video Link" />
+                                                        <input value={lec.videoUrl} onChange={e => setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, lectures: c.lectures.map(l => l.id === lec.id ? {...l, videoUrl: e.target.value} : l)} : c)} : s)})} className="w-full bg-white px-3 py-2 border border-slate-200 text-[9px] font-mono text-slate-500 outline-none rounded-none" placeholder="Video Link" />
                                                      </div>
                                                   ))}
-                                                  <button onClick={() => { const newLec: Lecture = { id: `lec-${Date.now()}`, title: 'New Lecture', videoUrl: '', duration: '00:00', description: '', resources: [] }; setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, lectures: [...c.lectures, newLec]} : c)} : s)}); }} className="w-full py-3 border-2 border-dashed border-slate-200 text-[8px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-all">+ Add Module</button>
+                                                  <button onClick={() => { const newLec: Lecture = { id: `lec-${Date.now()}`, title: 'New Lecture', videoUrl: '', duration: '00:00', description: '', resources: [] }; setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, lectures: [...c.lectures, newLec]} : c)} : s)}); }} className="w-full py-3 border-2 border-dashed border-slate-200 text-[8px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-all rounded-none">+ Add Module</button>
                                                </div>
                                             )}
                                          </div>
                                       ))}
-                                      <button onClick={() => { const newCh: Chapter = { id: `ch-${Date.now()}`, title: 'New Chapter', lectures: [] }; setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: [...s.chapters, newCh]} : s)}); }} className="w-full py-3 bg-white border border-slate-200 font-black text-[9px] text-blue-600 uppercase tracking-widest hover:bg-blue-50 transition-all">+ New Chapter</button>
+                                      <button onClick={() => { const newCh: Chapter = { id: `ch-${Date.now()}`, title: 'New Chapter', lectures: [] }; setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: [...s.chapters, newCh]} : s)}); }} className="w-full py-3 bg-white border border-slate-200 font-black text-[9px] text-blue-600 uppercase tracking-widest hover:bg-blue-50 transition-all rounded-none">+ New Chapter</button>
                                    </div>
                                 )}
                              </div>
@@ -509,8 +509,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                  </div>
               </div>
               <div className="p-6 border-t border-slate-200 bg-white flex justify-end gap-4 shadow-xl">
-                 <button onClick={() => setIsModalOpen(false)} className="px-8 py-4 font-black text-slate-400 hover:text-slate-800 transition-all uppercase tracking-widest text-[9px]">Cancel</button>
-                 <button onClick={handleSaveBatch} disabled={saveStatus !== 'idle'} className="px-12 py-4 bg-blue-600 text-white font-black text-[11px] uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md">
+                 <button onClick={() => setIsModalOpen(false)} className="px-8 py-4 font-black text-slate-400 hover:text-slate-800 transition-all uppercase tracking-widest text-[9px] rounded-none">Cancel</button>
+                 <button onClick={handleSaveBatch} disabled={saveStatus !== 'idle'} className="px-12 py-4 bg-blue-600 text-white font-black text-[11px] uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md rounded-none">
                     {saveStatus === 'saving' ? <Loader2 className="animate-spin" size={18}/> : 'Push Live Updates'}
                  </button>
               </div>

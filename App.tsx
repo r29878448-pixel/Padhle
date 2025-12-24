@@ -23,7 +23,7 @@ const SidebarItem: React.FC<{icon: React.ReactNode, label: string, active: boole
     className={`w-full flex items-center gap-4 px-4 py-3 rounded-none transition-all duration-300 ${active ? 'bg-blue-600 text-white border-l-4 border-white' : 'text-slate-600 hover:bg-slate-50'}`}
   >
     <span className={active ? 'text-white' : 'text-slate-400'}>{icon}</span>
-    <span className="font-bold text-sm">{label}</span>
+    <span className="font-bold text-sm uppercase tracking-tight">{label}</span>
   </button>
 );
 
@@ -138,7 +138,7 @@ const App: React.FC = () => {
           <div className="w-16 h-16 bg-blue-600 rounded-none flex items-center justify-center text-white font-black text-2xl mx-auto shadow-lg">S</div>
           <div className="space-y-3">
             <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Study Portal</h1>
-            <p className="text-slate-500 font-medium leading-relaxed px-4 text-sm">
+            <p className="text-slate-500 font-medium leading-relaxed px-4 text-sm uppercase tracking-tight">
               Premium academic environment. Please sign in to access your dashboard.
             </p>
           </div>
@@ -173,8 +173,8 @@ const App: React.FC = () => {
             
             {(user?.role === 'admin' || user?.role === 'manager') && (
                <div className="mt-6 pt-6 border-t border-slate-100">
-                 <p className="text-[9px] uppercase font-black text-slate-400 px-8 mb-4 tracking-widest">Administrator</p>
-                 <SidebarItem icon={<Settings size={18}/>} label="CONSOLE" active={activeView === 'admin'} onClick={() => {setActiveView('admin'); setIsSidebarOpen(false);}} />
+                 <p className="text-[9px] uppercase font-black text-slate-400 px-8 mb-4 tracking-widest">Faculty Controls</p>
+                 <SidebarItem icon={<Settings size={18}/>} label="ADMIN CONSOLE" active={activeView === 'admin'} onClick={() => {setActiveView('admin'); setIsSidebarOpen(false);}} />
                </div>
             )}
           </div>
@@ -199,7 +199,7 @@ const App: React.FC = () => {
           
           <div className="hidden md:flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-none border border-slate-200">
              <Bell size={12} className="text-blue-600" />
-             <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Portal status: Premium encrypted stream active.</p>
+             <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Network Secure: AES-256 Stream Active.</p>
           </div>
 
           <div className="flex items-center gap-4">
@@ -222,13 +222,13 @@ const App: React.FC = () => {
             {activeView === 'home' && (
               <div className="space-y-10 animate-fadeIn">
                 <section className="relative h-[320px] rounded-none overflow-hidden shadow-xl border border-slate-200 bg-slate-900">
-                   <img src={banners[0]?.imageUrl || "https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&q=80&w=1500"} className="w-full h-full object-cover opacity-60" />
-                   <div className="absolute inset-0 flex flex-col justify-center p-10 md:p-14">
+                   <img src={banners[0]?.imageUrl || "https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&q=80&w=1500"} className="w-full h-full object-cover opacity-80" />
+                   <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900/40 to-transparent flex flex-col justify-center p-10 md:p-14">
                       <div className="max-w-xl">
-                        <span className="bg-blue-600 text-white px-3 py-1 text-[8px] font-black uppercase tracking-widest mb-4 inline-block">Official Batch</span>
+                        <span className="bg-blue-600 text-white px-3 py-1 text-[8px] font-black uppercase tracking-widest mb-4 inline-block shadow-lg">New Release</span>
                         <h1 className="text-3xl md:text-5xl font-black text-white leading-tight tracking-tighter mb-5 uppercase">Academic <br/><span className="text-blue-400">Portal.</span></h1>
-                        <p className="text-slate-300 text-sm font-medium mb-8 leading-relaxed max-w-sm uppercase tracking-tight">Access elite learning resources and AI expert guidance.</p>
-                        <button onClick={() => courses.length > 0 && navigateToCourse(courses[0])} className="bg-white text-slate-900 px-8 py-4 rounded-none font-black text-[10px] uppercase tracking-widest hover:bg-blue-50 transition-all flex items-center gap-2 shadow-lg border-b-4 border-slate-200">
+                        <p className="text-slate-300 text-sm font-medium mb-8 leading-relaxed max-w-sm uppercase tracking-tight">Stream premium curriculum and interact with AI subject experts.</p>
+                        <button onClick={() => courses.length > 0 && navigateToCourse(courses[0])} className="bg-white text-slate-900 px-8 py-4 rounded-none font-black text-[10px] uppercase tracking-widest hover:bg-blue-50 transition-all flex items-center gap-2 shadow-lg border-b-4 border-slate-300 active:translate-y-1 active:border-b-0">
                            Explore Curriculum <ArrowRight size={14}/>
                         </button>
                       </div>
@@ -236,21 +236,27 @@ const App: React.FC = () => {
                 </section>
 
                 <section>
-                   <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-xl font-black tracking-tight text-slate-900 uppercase">Enrolled Batches</h2>
+                   <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
+                      <h2 className="text-xl font-black tracking-tight text-slate-900 uppercase flex items-center gap-3">
+                        <Layers size={20} className="text-blue-600"/> Enrolled Batches
+                      </h2>
                    </div>
                    {courses.length > 0 ? (
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                       {courses.map(course => (
-                        <div key={course.id} className="bg-white rounded-none overflow-hidden border border-slate-200 hover:border-blue-500 hover:shadow-xl transition-all cursor-pointer group flex flex-col" onClick={() => navigateToCourse(course)}>
-                          <div className="relative aspect-video grayscale group-hover:grayscale-0 transition-all duration-500">
-                            <img src={course.image} className="w-full h-full object-cover" />
+                        <div key={course.id} className="bg-white rounded-none overflow-hidden border border-slate-200 hover:border-blue-500 hover:shadow-2xl transition-all cursor-pointer group flex flex-col relative" onClick={() => navigateToCourse(course)}>
+                          <div className="absolute top-4 left-4 z-10">
+                            <span className="bg-slate-900/90 text-white px-3 py-1 text-[8px] font-black uppercase tracking-widest border border-slate-700 backdrop-blur-sm">Premium</span>
                           </div>
-                          <div className="p-6 flex-1 flex flex-col">
-                            <h3 className="font-black text-base mb-1 line-clamp-1 uppercase tracking-tight">{course.title}</h3>
+                          <div className="relative aspect-video overflow-hidden">
+                            <img src={course.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
+                            <div className="absolute inset-0 bg-slate-900/20 group-hover:bg-transparent transition-colors duration-500"></div>
+                          </div>
+                          <div className="p-6 flex-1 flex flex-col border-t border-slate-100">
+                            <h3 className="font-black text-base mb-1 line-clamp-1 uppercase tracking-tight group-hover:text-blue-600 transition-colors">{course.title}</h3>
                             <p className="text-slate-400 text-[8px] font-bold uppercase tracking-widest mb-6">{course.instructor}</p>
                             <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
-                              <span className="text-[10px] font-black text-blue-600 uppercase">Full Access</span>
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Access</span>
                               <div className="p-2 bg-slate-50 border border-slate-200 group-hover:bg-blue-600 group-hover:text-white transition-all">
                                 <ChevronRight size={16}/>
                               </div>
@@ -315,7 +321,7 @@ const App: React.FC = () => {
                                           <ChevronRight size={14} className="text-slate-300" />
                                         </button>
                                         
-                                        {user?.role === 'admin' && (
+                                        {(user?.role === 'admin' || user?.role === 'manager') && (
                                           <button 
                                             onClick={(e) => { e.stopPropagation(); copyDirectLink(selectedCourse.id, lecture.id); }}
                                             className="absolute right-12 top-1/2 -translate-y-1/2 p-2 bg-slate-900 text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-600 font-black text-[8px] uppercase tracking-widest"
