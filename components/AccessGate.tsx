@@ -37,7 +37,6 @@ const AccessGate: React.FC<AccessGateProps> = ({ siteSettings, onClose, onAccess
     setFallbackSeconds(null);
 
     // 0. Set Timestamp for Fallback Verification (20s rule)
-    // If the user leaves and comes back after 20s, App.tsx will auto-grant access.
     localStorage.setItem('study_portal_verification_start', Date.now().toString());
 
     try {
@@ -45,7 +44,7 @@ const AccessGate: React.FC<AccessGateProps> = ({ siteSettings, onClose, onAccess
       const baseUrl = window.location.origin + window.location.pathname;
       const destinationUrl = `${baseUrl}?auto_verify=true`;
 
-      // 2. API Config (Fallback to provided defaults if empty)
+      // 2. API Config
       const apiUrl = siteSettings.shortenerUrl || 'https://vplink.in/api';
       const apiKey = siteSettings.shortenerApiKey || '320f263d298979dc11826b8e2574610ba0cc5d6b';
 
@@ -56,10 +55,8 @@ const AccessGate: React.FC<AccessGateProps> = ({ siteSettings, onClose, onAccess
       // 3. Construct API URL
       const requestUrl = `${apiUrl}?api=${apiKey}&url=${encodeURIComponent(destinationUrl)}&format=text`;
       
-      // 4. Proxy (Switching to allorigins to avoid 403 from corsproxy.io)
+      // 4. Proxy (Using allorigins)
       const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(requestUrl)}`;
-
-      console.log("Generating link via proxy...");
 
       const response = await fetch(proxyUrl);
       
@@ -70,20 +67,15 @@ const AccessGate: React.FC<AccessGateProps> = ({ siteSettings, onClose, onAccess
       const shortenedLink = (await response.text()).trim();
 
       // 5. Validation
-      if (!shortenedLink) {
-        throw new Error("Empty response service.");
-      }
-
-      if (shortenedLink.startsWith('http')) {
-        window.location.href = shortenedLink;
-      } else {
-        // If response is JSON error or HTML, treat as failure
+      if (!shortenedLink || !shortenedLink.startsWith('http')) {
         throw new Error("Invalid link response");
       }
+
+      window.location.href = shortenedLink;
       
     } catch (err: any) {
       console.error("Link Gen Failed:", err);
-      // Fallback: Trigger visual countdown
+      // Fallback: Trigger visual countdown (15s UI sync)
       setIsFallbackMode(true);
       setFallbackSeconds(15);
       setError("Link service busy. Manual verification enabled.");
@@ -111,7 +103,7 @@ const AccessGate: React.FC<AccessGateProps> = ({ siteSettings, onClose, onAccess
         <div className="p-8 space-y-6">
           <div className="flex gap-4 items-start">
              <Clock className="text-blue-600 shrink-0" size={20} />
-             <p className="text-sm text-slate-600 font-medium">Complete one quick step to unlock <span className="font-bold text-slate-900">48 Hours</span> of unlimited access to all batches and notes.</p>
+             <p className="text-sm text-slate-600 font-medium">Complete one quick step to unlock <span className="font-bold text-slate-900">24 Hours</span> of unlimited access to all batches and notes.</p>
           </div>
 
           {error && (

@@ -8,7 +8,7 @@ export interface Resource {
 export interface Lecture {
   id: string;
   title: string;
-  youtubeId: string;
+  videoUrl: string; // Changed from youtubeId to support multiple sources
   duration: string;
   description: string;
   resources: Resource[]; // Notes/PDFs specific to this lecture
