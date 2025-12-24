@@ -20,7 +20,7 @@ const SidebarItem: React.FC<{icon: React.ReactNode, label: string, active: boole
   <button 
     type="button"
     onClick={onClick} 
-    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${active ? 'bg-blue-600 text-white shadow-xl shadow-blue-200' : 'text-slate-600 hover:bg-slate-50'}`}
+    className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-300 ${active ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-600 hover:bg-slate-50'}`}
   >
     <span className={active ? 'text-white' : 'text-slate-400'}>{icon}</span>
     <span className="font-bold text-sm">{label}</span>
@@ -117,7 +117,7 @@ const App: React.FC = () => {
   const copyDirectLink = (batchId: string, lectureId: string) => {
     const url = `${window.location.origin}${window.location.pathname}?batch_id=${batchId}&child_id=${lectureId}`;
     navigator.clipboard.writeText(url);
-    showToast('Direct Link Copied to Clipboard!');
+    showToast('Direct Link Copied!');
   };
 
   if (isLoading) {
@@ -128,33 +128,29 @@ const App: React.FC = () => {
     );
   }
 
-  // ACCESS LOGIC: Show nothing but the Auth wall if no user AND no valid direct link
   const isDirectAccess = hasDirectLink && activeView === 'video' && !!selectedLecture;
   const shouldBlock = !user && !isDirectAccess;
 
   if (shouldBlock) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
-        <div className="max-w-md w-full space-y-10 animate-fadeIn">
-          <div className="w-24 h-24 bg-blue-600 rounded-[2.5rem] flex items-center justify-center text-white font-black text-4xl mx-auto shadow-2xl shadow-blue-500/30">S</div>
-          <div className="space-y-4">
+        <div className="max-w-md w-full space-y-8 animate-fadeIn">
+          <div className="w-20 h-20 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-3xl mx-auto shadow-xl">S</div>
+          <div className="space-y-3">
             <h1 className="text-4xl font-black tracking-tight text-slate-900">Study Portal</h1>
             <p className="text-slate-500 font-medium leading-relaxed px-4">
-              Access the premium learning hub. Sign in to browse your enrolled batches and resources.
+              Access premium academic curriculum. Sign in to browse your enrolled batches and resources.
             </p>
           </div>
           <div className="space-y-4 pt-4">
-            <button onClick={() => setIsAuthModalOpen(true)} className="w-full bg-slate-900 text-white py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl flex items-center justify-center gap-3">
-              <UserIcon size={20}/> Log In to Portal
+            <button onClick={() => setIsAuthModalOpen(true)} className="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg flex items-center justify-center gap-3">
+              <UserIcon size={18}/> Log In to Portal
             </button>
             <div className="flex items-center gap-4 py-2 opacity-30">
               <div className="h-px bg-slate-400 flex-1"></div>
-              <span className="text-[10px] font-black uppercase tracking-widest">Academic Gateway</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Gateway</span>
               <div className="h-px bg-slate-400 flex-1"></div>
             </div>
-            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">
-              Direct lecture links grant automatic guest access.
-            </p>
           </div>
         </div>
         <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onAuthSuccess={handleAuthSuccess} />
@@ -164,37 +160,36 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white flex font-sans text-slate-900">
-      {/* TOAST SYSTEM */}
       {toast.show && (
-        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[1000] bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 shadow-2xl animate-slideUp">
-           <CheckCircle2 className="text-emerald-400" size={20}/> {toast.message}
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[1000] bg-slate-900 text-white px-6 py-3 rounded-lg font-black text-xs uppercase tracking-widest flex items-center gap-3 shadow-2xl animate-slideUp">
+           <CheckCircle2 className="text-emerald-400" size={18}/> {toast.message}
         </div>
       )}
 
       <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-slate-100 z-50 transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className="p-8 h-full flex flex-col">
+        <div className="p-6 h-full flex flex-col">
           <div className="flex items-center gap-3 mb-10 px-2 cursor-pointer" onClick={() => { setHasDirectLink(false); setActiveView('home'); }}>
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg">S</div>
-            <span className="text-xl font-black text-slate-900 tracking-tighter">STUDY PORTAL</span>
+            <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-md">S</div>
+            <span className="text-lg font-black text-slate-900 tracking-tighter">STUDY PORTAL</span>
           </div>
           <div className="space-y-2 flex-1">
-            <SidebarItem icon={<Home size={20}/>} label="Dashboard" active={activeView === 'home'} onClick={() => {setActiveView('home'); setHasDirectLink(false); setIsSidebarOpen(false);}} />
-            <SidebarItem icon={<BookOpen size={20}/>} label="All Batches" active={activeView === 'course'} onClick={() => {setActiveView('course'); setIsSidebarOpen(false);}} />
+            <SidebarItem icon={<Home size={18}/>} label="Dashboard" active={activeView === 'home'} onClick={() => {setActiveView('home'); setHasDirectLink(false); setIsSidebarOpen(false);}} />
+            <SidebarItem icon={<BookOpen size={18}/>} label="All Batches" active={activeView === 'course'} onClick={() => {setActiveView('course'); setIsSidebarOpen(false);}} />
             
             {(user?.role === 'admin' || user?.role === 'manager') && (
                <div className="mt-8 pt-8 border-t border-slate-100">
-                 <p className="text-[10px] uppercase font-black text-slate-400 px-4 mb-4 tracking-widest">Administrative</p>
-                 <SidebarItem icon={<Settings size={20}/>} label="Panel" active={activeView === 'admin'} onClick={() => {setActiveView('admin'); setIsSidebarOpen(false);}} />
+                 <p className="text-[10px] uppercase font-black text-slate-400 px-4 mb-4 tracking-widest">Control Center</p>
+                 <SidebarItem icon={<Settings size={18}/>} label="Admin Console" active={activeView === 'admin'} onClick={() => {setActiveView('admin'); setIsSidebarOpen(false);}} />
                </div>
             )}
           </div>
           
           <div className="mt-auto border-t border-slate-100 pt-6">
             {!user ? (
-               <button onClick={() => setIsAuthModalOpen(true)} className="w-full bg-slate-900 text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all">Sign In</button>
+               <button onClick={() => setIsAuthModalOpen(true)} className="w-full bg-slate-900 text-white py-3 rounded-lg font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all">Sign In</button>
             ) : (
-               <button onClick={() => {setUser(null); localStorage.removeItem('study_portal_user'); setHasDirectLink(false); setActiveView('home');}} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-red-500 font-bold hover:bg-red-50 transition-all">
-                <LogOut size={20} /> Logout
+               <button onClick={() => {setUser(null); localStorage.removeItem('study_portal_user'); setHasDirectLink(false); setActiveView('home');}} className="w-full flex items-center gap-4 px-4 py-3 rounded-lg text-red-500 font-bold hover:bg-red-50 transition-all">
+                <LogOut size={18} /> Logout
               </button>
             )}
           </div>
@@ -202,67 +197,67 @@ const App: React.FC = () => {
       </aside>
 
       <div className="flex-1 md:ml-64 flex flex-col min-w-0">
-        <nav className="h-20 bg-white border-b border-slate-100 flex items-center px-6 md:px-12 justify-between sticky top-0 z-40">
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden p-3 hover:bg-slate-50 rounded-2xl">
-            <Menu size={24} />
+        <nav className="h-16 bg-white border-b border-slate-100 flex items-center px-6 md:px-10 justify-between sticky top-0 z-40">
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden p-2 hover:bg-slate-50 rounded-lg">
+            <Menu size={20} />
           </button>
           
-          <div className="hidden md:flex items-center gap-3 bg-blue-50/50 px-6 py-2.5 rounded-full border border-blue-100">
-             <Bell size={16} className="text-blue-600 animate-pulse" />
-             <p className="text-[11px] font-bold text-blue-900">Attention: New schedule for Project 45 batches released.</p>
+          <div className="hidden md:flex items-center gap-3 bg-blue-50/50 px-5 py-2 rounded-lg border border-blue-100">
+             <Bell size={14} className="text-blue-600 animate-pulse" />
+             <p className="text-[10px] font-bold text-blue-900">Project 45 batches are now strictly regulated for premium access.</p>
           </div>
 
           <div className="flex items-center gap-4">
              {user && (
                <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveView('profile')}>
                  <div className="text-right hidden sm:block">
-                   <p className="text-xs font-black">{user.name}</p>
-                   <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest">{user.role}</p>
+                   <p className="text-[11px] font-black">{user.name}</p>
+                   <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest">{user.role}</p>
                  </div>
-                 <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500">
-                    <UserIcon size={20} />
+                 <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500">
+                    <UserIcon size={18} />
                  </div>
                </div>
              )}
           </div>
         </nav>
 
-        <main className="flex-1 p-6 md:p-12 overflow-x-hidden">
+        <main className="flex-1 p-6 md:p-10 overflow-x-hidden">
           <div className="max-w-7xl mx-auto">
             {activeView === 'home' && (
-              <div className="space-y-12 animate-fadeIn">
-                <section className="relative h-[380px] rounded-[3rem] overflow-hidden shadow-2xl">
+              <div className="space-y-10 animate-fadeIn">
+                <section className="relative h-[340px] rounded-xl overflow-hidden shadow-xl border border-slate-100">
                    <img src={banners[0]?.imageUrl || "https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&q=80&w=1500"} className="w-full h-full object-cover" />
-                   <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 via-blue-900/40 to-transparent flex flex-col justify-center p-12 md:p-16">
+                   <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/40 to-transparent flex flex-col justify-center p-10 md:p-14">
                       <div className="max-w-xl">
-                        <span className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest mb-6 inline-block shadow-lg">New Batch Active</span>
-                        <h1 className="text-5xl md:text-6xl font-black text-white leading-tight tracking-tighter mb-6">Top Educators. <br/><span className="text-blue-400">Pure Results.</span></h1>
-                        <p className="text-blue-100 text-lg font-medium mb-10 leading-relaxed">Experience a revolution in personalized academic excellence with our expert faculty.</p>
-                        <button onClick={() => courses.length > 0 && navigateToCourse(courses[0])} className="bg-white text-blue-600 px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-50 transition-all flex items-center gap-3 shadow-2xl">
-                           View Full Batch <ArrowRight size={20}/>
+                        <span className="bg-blue-600 text-white px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest mb-4 inline-block shadow-md">Premium Curriculum</span>
+                        <h1 className="text-4xl md:text-5xl font-black text-white leading-tight tracking-tighter mb-5">Excellence in <br/><span className="text-blue-400">Digital Learning.</span></h1>
+                        <p className="text-slate-200 text-base font-medium mb-8 leading-relaxed max-w-sm">Access expert-led batches, professional notes, and AI support in one portal.</p>
+                        <button onClick={() => courses.length > 0 && navigateToCourse(courses[0])} className="bg-white text-slate-900 px-8 py-4 rounded-lg font-black text-xs uppercase tracking-widest hover:bg-blue-50 transition-all flex items-center gap-2 shadow-lg">
+                           View Batch <ArrowRight size={16}/>
                         </button>
                       </div>
                    </div>
                 </section>
 
                 <section>
-                   <div className="flex items-center justify-between mb-8">
-                      <h2 className="text-3xl font-black tracking-tight">Browse Courses</h2>
+                   <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-2xl font-black tracking-tight text-slate-900">Available Batches</h2>
                    </div>
                    {courses.length > 0 ? (
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                       {courses.map(course => (
-                        <div key={course.id} className="bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 hover:border-blue-200 hover:shadow-2xl transition-all cursor-pointer group flex flex-col" onClick={() => navigateToCourse(course)}>
+                        <div key={course.id} className="bg-white rounded-xl overflow-hidden border border-slate-100 hover:border-blue-200 hover:shadow-xl transition-all cursor-pointer group flex flex-col" onClick={() => navigateToCourse(course)}>
                           <div className="relative aspect-video">
-                            <img src={course.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                            <img src={course.image} className="w-full h-full object-cover" />
                           </div>
-                          <div className="p-10 flex-1 flex flex-col">
-                            <h3 className="font-black text-2xl mb-2 line-clamp-1">{course.title}</h3>
-                            <p className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mb-10">{course.instructor} • {course.category}</p>
-                            <div className="mt-auto pt-8 border-t border-slate-50 flex items-center justify-between">
-                              <span className="text-xl font-black text-blue-600">Full Access</span>
-                              <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                                <ChevronRight size={20}/>
+                          <div className="p-6 flex-1 flex flex-col">
+                            <h3 className="font-black text-xl mb-1 line-clamp-1">{course.title}</h3>
+                            <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mb-6">{course.instructor} • {course.category}</p>
+                            <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
+                              <span className="text-sm font-black text-blue-600">Enrolled Access</span>
+                              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                <ChevronRight size={18}/>
                               </div>
                             </div>
                           </div>
@@ -270,10 +265,9 @@ const App: React.FC = () => {
                       ))}
                     </div>
                    ) : (
-                     <div className="bg-slate-50 p-24 rounded-[3rem] text-center border-2 border-dashed border-slate-200">
-                        <Database className="mx-auto text-slate-300 mb-6" size={64} />
-                        <p className="font-black text-slate-400 text-lg">Your dashboard is empty.</p>
-                        <p className="text-slate-400 text-sm mt-2">Initialize batch data from the admin panel to begin.</p>
+                     <div className="bg-slate-50 p-20 rounded-xl text-center border border-dashed border-slate-200">
+                        <Database className="mx-auto text-slate-300 mb-4" size={48} />
+                        <p className="font-black text-slate-400 text-sm">Dashboard database is empty.</p>
                      </div>
                    )}
                 </section>
@@ -282,64 +276,61 @@ const App: React.FC = () => {
             
             {activeView === 'course' && selectedCourse && (
               <div className="max-w-5xl mx-auto animate-fadeIn">
-                <button onClick={() => { setHasDirectLink(false); setActiveView('home'); }} className="mb-10 flex items-center gap-3 text-slate-400 hover:text-blue-600 font-black text-xs uppercase tracking-widest">
-                   <ChevronLeft size={20}/> Back to Dashboard
+                <button onClick={() => { setHasDirectLink(false); setActiveView('home'); }} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-blue-600 font-black text-[10px] uppercase tracking-widest">
+                   <ChevronLeft size={16}/> Back to Dashboard
                 </button>
-                <div className="bg-blue-600 rounded-[3rem] p-16 text-white mb-12 shadow-2xl relative overflow-hidden">
+                <div className="bg-slate-900 rounded-xl p-12 text-white mb-10 shadow-lg relative overflow-hidden border border-slate-800">
                    <div className="relative z-10">
-                      <h1 className="text-5xl font-black mb-6 tracking-tight">{selectedCourse.title}</h1>
-                      <p className="text-blue-100 text-xl font-medium max-w-xl leading-relaxed">{selectedCourse.description}</p>
+                      <h1 className="text-4xl font-black mb-4 tracking-tight">{selectedCourse.title}</h1>
+                      <p className="text-slate-400 text-lg font-medium max-w-xl leading-relaxed">{selectedCourse.description}</p>
                    </div>
-                   <div className="absolute right-0 bottom-0 p-12 opacity-10">
-                      <GraduationCap size={220}/>
+                   <div className="absolute right-0 bottom-0 p-8 opacity-5">
+                      <GraduationCap size={160}/>
                    </div>
                 </div>
                 
-                <div className="space-y-10">
+                <div className="space-y-8">
                    {selectedCourse.subjects.map(subject => (
-                      <div key={subject.id} className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm">
-                         <h3 className="text-3xl font-black text-blue-600 mb-10 flex items-center gap-4">
-                            <Layers size={32} /> {subject.title}
+                      <div key={subject.id} className="bg-white p-10 rounded-xl border border-slate-100 shadow-sm">
+                         <h3 className="text-2xl font-black text-blue-600 mb-8 flex items-center gap-3">
+                            <Layers size={24} /> {subject.title}
                          </h3>
-                         <div className="space-y-12">
+                         <div className="space-y-10">
                             {subject.chapters.map(chapter => (
                                <div key={chapter.id}>
-                                  <div className="flex items-center gap-4 mb-6">
-                                    <div className="h-px bg-slate-100 flex-1"></div>
-                                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                       <Folder size={14} className="text-blue-400"/> {chapter.title}
+                                  <div className="flex items-center gap-4 mb-5">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                       <Folder size={12} className="text-blue-400"/> {chapter.title}
                                     </p>
                                     <div className="h-px bg-slate-100 flex-1"></div>
                                   </div>
-                                  <div className="grid grid-cols-1 gap-4">
+                                  <div className="grid grid-cols-1 gap-3">
                                   {chapter.lectures.map(lecture => (
                                      <div key={lecture.id} className="group relative">
                                         <button 
                                           onClick={() => { setSelectedLecture(lecture); setActiveView('video'); window.scrollTo(0,0); }}
-                                          className="w-full flex items-center justify-between p-6 rounded-[1.5rem] bg-slate-50 border border-slate-100 hover:border-blue-400 hover:bg-white hover:shadow-xl transition-all"
+                                          className="w-full flex items-center justify-between p-5 rounded-lg bg-slate-50 border border-slate-100 hover:border-blue-400 hover:bg-white transition-all shadow-sm"
                                         >
-                                          <div className="flex items-center gap-6">
-                                            <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-xl group-hover:scale-110 transition-transform">
-                                                <Play size={20} fill="currentColor" />
+                                          <div className="flex items-center gap-5">
+                                            <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform">
+                                                <Play size={16} fill="currentColor" />
                                             </div>
                                             <div className="text-left">
-                                                <p className="text-base font-black text-slate-900">{lecture.title}</p>
-                                                <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest mt-1.5">{lecture.duration} • Watch Now</p>
+                                                <p className="text-sm font-black text-slate-900">{lecture.title}</p>
+                                                <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1">{lecture.duration} • Watch Now</p>
                                             </div>
                                           </div>
-                                          <div className="p-3 bg-white rounded-xl shadow-sm border border-slate-100 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                            <ChevronRight size={20} />
+                                          <div className="p-2 bg-white rounded-md border border-slate-100 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                            <ChevronRight size={16} />
                                           </div>
                                         </button>
                                         
-                                        {/* ADMIN ONLY LINK COPY */}
                                         {user?.role === 'admin' && (
                                           <button 
                                             onClick={(e) => { e.stopPropagation(); copyDirectLink(selectedCourse.id, lecture.id); }}
-                                            className="absolute right-20 top-1/2 -translate-y-1/2 p-3 bg-slate-900 text-white rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-600 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest"
-                                            title="Copy Admin Direct Link"
+                                            className="absolute right-16 top-1/2 -translate-y-1/2 p-2 bg-slate-900 text-white rounded-md opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-600 flex items-center gap-2 font-black text-[9px] uppercase tracking-widest"
                                           >
-                                            <LinkIcon size={14} /> Copy Link
+                                            <LinkIcon size={12} /> Share
                                           </button>
                                         )}
                                      </div>
@@ -356,49 +347,49 @@ const App: React.FC = () => {
             
             {activeView === 'video' && selectedLecture && (
               <div className="animate-fadeIn">
-                <button onClick={() => { setHasDirectLink(false); setActiveView('course'); }} className="mb-10 flex items-center gap-3 text-slate-400 hover:text-blue-600 font-black text-xs uppercase tracking-widest">
-                   <ChevronLeft size={20}/> Back to Batch Overview
+                <button onClick={() => { setHasDirectLink(false); setActiveView('course'); }} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-blue-600 font-black text-[10px] uppercase tracking-widest">
+                   <ChevronLeft size={16}/> Back to Batch
                 </button>
 
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
                   <div className="xl:col-span-8">
                     <VideoPlayer videoUrl={selectedLecture.videoUrl} title={selectedLecture.title} />
-                    <div className="bg-white p-12 rounded-[3.5rem] mt-10 border border-slate-100 shadow-sm">
+                    <div className="bg-white p-10 rounded-xl mt-8 border border-slate-100 shadow-sm">
                       <div className="flex items-center justify-between mb-6">
-                        <div className="space-y-2">
-                           <h1 className="text-3xl font-black text-slate-900 tracking-tight">{selectedLecture.title}</h1>
-                           {hasDirectLink && <div className="text-emerald-500 font-black text-[10px] uppercase tracking-widest flex items-center gap-2"><CheckCircle2 size={12}/> Accessing via Direct Academic Link</div>}
+                        <div className="space-y-1">
+                           <h1 className="text-2xl font-black text-slate-900 tracking-tight">{selectedLecture.title}</h1>
+                           {hasDirectLink && <div className="text-emerald-600 font-black text-[9px] uppercase tracking-widest flex items-center gap-2"><CheckCircle2 size={10}/> Guest Access Granted</div>}
                         </div>
-                        <span className="px-5 py-2 bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-xl border border-blue-100">Official Resource</span>
+                        <span className="px-4 py-1.5 bg-blue-50 text-blue-600 text-[9px] font-black uppercase tracking-widest rounded-md border border-blue-100">Academic Module</span>
                       </div>
-                      <p className="text-slate-500 font-medium text-lg leading-relaxed">{selectedLecture.description || "No description available for this session."}</p>
+                      <p className="text-slate-500 font-medium text-base leading-relaxed">{selectedLecture.description || "Instructional session details are standard for this batch."}</p>
                     </div>
                   </div>
                   
-                  <div className="xl:col-span-4 space-y-10">
-                     <div className="bg-slate-100 p-2.5 rounded-[1.5rem] flex shadow-inner">
-                        <button onClick={() => setLectureTab('ai')} className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${lectureTab === 'ai' ? 'bg-white text-blue-600 shadow-xl' : 'text-slate-500 hover:text-slate-800'}`}><Sparkles size={16}/> AI Doubts</button>
-                        <button onClick={() => setLectureTab('notes')} className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${lectureTab === 'notes' ? 'bg-white text-blue-600 shadow-xl' : 'text-slate-500 hover:text-slate-800'}`}><FileText size={16}/> Notes</button>
+                  <div className="xl:col-span-4 space-y-8">
+                     <div className="bg-slate-100 p-2 rounded-lg flex shadow-inner border border-slate-200">
+                        <button onClick={() => setLectureTab('ai')} className={`flex-1 py-3 rounded-md text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${lectureTab === 'ai' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-800'}`}><Sparkles size={14}/> AI Tutor</button>
+                        <button onClick={() => setLectureTab('notes')} className={`flex-1 py-3 rounded-md text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${lectureTab === 'notes' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-800'}`}><FileText size={14}/> Notes</button>
                      </div>
 
                      {lectureTab === 'ai' ? <DoubtSolver currentContext={selectedLecture.title} /> : (
-                        <div className="bg-white p-10 rounded-[3rem] border border-slate-100 min-h-[500px] shadow-sm">
-                           <h3 className="font-black text-xl mb-8">Study Resources</h3>
-                           <div className="space-y-4">
+                        <div className="bg-white p-8 rounded-xl border border-slate-100 min-h-[450px] shadow-sm">
+                           <h3 className="font-black text-lg mb-6 text-slate-900">Batch Resources</h3>
+                           <div className="space-y-3">
                               {selectedLecture.resources && selectedLecture.resources.length > 0 ? selectedLecture.resources.map(res => (
-                                 <button key={res.id} onClick={() => window.open(res.url, '_blank')} className="w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between hover:bg-blue-50 hover:border-blue-300 transition-all group">
-                                    <div className="flex items-center gap-4">
-                                       <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm border border-slate-100 group-hover:scale-110 transition-transform">
-                                          <Download size={20}/>
+                                 <button key={res.id} onClick={() => window.open(res.url, '_blank')} className="w-full p-5 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-between hover:bg-blue-50 hover:border-blue-200 transition-all group">
+                                    <div className="flex items-center gap-3">
+                                       <div className="w-8 h-8 bg-white rounded-md flex items-center justify-center text-blue-600 shadow-sm border border-slate-100 group-hover:scale-105 transition-transform">
+                                          <Download size={16}/>
                                        </div>
-                                       <span className="text-sm font-black text-slate-800">{res.title}</span>
+                                       <span className="text-xs font-black text-slate-800">{res.title}</span>
                                     </div>
-                                    <ExternalLink size={16} className="text-slate-300 group-hover:text-blue-600" />
+                                    <ExternalLink size={14} className="text-slate-300 group-hover:text-blue-600" />
                                  </button>
                               )) : (
                                 <div className="text-center py-20 text-slate-300">
-                                   <FileText size={48} className="mx-auto mb-4 opacity-20" />
-                                   <p className="text-sm font-bold uppercase tracking-widest">No resources found</p>
+                                   <FileText size={40} className="mx-auto mb-4 opacity-20" />
+                                   <p className="text-[10px] font-bold uppercase tracking-widest">No resources assigned</p>
                                 </div>
                               )}
                            </div>

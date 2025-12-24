@@ -4,7 +4,7 @@ import {
   Plus, Trash2, Edit2, X, 
   Video as VideoIcon, Upload, 
   RefreshCw, Check, User as UserIcon, Shield, UserPlus, Globe, Key, Save, LayoutDashboard, ChevronDown, ChevronUp, FileText, Youtube, Image, Lock, Link as LinkIcon, Layers, Folder, Info, Inbox, Sparkles, Send, ArrowRight, Zap,
-  Loader2, Bell, Megaphone, Database, ClipboardCheck
+  Loader2, Bell, Megaphone, Database, ClipboardCheck, Settings as SettingsIcon
 } from 'lucide-react';
 import { Course, Subject, Chapter, Lecture, StaffMember, SiteSettings, Resource, Notice } from '../types';
 import { subscribeToStaff, addStaffToDB, removeStaffFromDB, saveCourseToDB, deleteCourseFromDB, saveSiteSettings, subscribeToTelegramFeed, TelegramPost, markPostAsIngested, subscribeToNotices, addNoticeToDB, deleteNoticeFromDB } from '../services/db';
@@ -61,26 +61,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleSeedProject45 = async () => {
-    if (!confirm("This will seed the official 'Project 45 10th Batch' into your portal. Continue?")) return;
-    setSaveStatus('saving');
-    try {
-      for (const demoCourse of DEMO_COURSES) {
-        await saveCourseToDB(demoCourse);
-      }
-      setSaveStatus('success');
-      setTimeout(() => setSaveStatus('idle'), 2000);
-    } catch (e) {
-      setSaveStatus('error');
-    }
-  };
-
-  const handleAddNotice = async () => {
-    if (!newNotice.text || !newNotice.text.trim()) return;
-    await addNoticeToDB(newNotice);
-    setNewNotice({ text: '', type: 'update' });
-  };
-
   const handleAISortAll = async () => {
     setIsSorting(true);
     const newSuggestions: Record<string, any> = {};
@@ -103,18 +83,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
     const updatedCourse = JSON.parse(JSON.stringify(targetCourse));
     const subTitleRaw = suggestion.subjectTitle || "General";
     const chapTitleRaw = suggestion.chapterTitle || "Uncategorized";
-    const cleanSubTitle = subTitleRaw.toLowerCase().trim();
-    const cleanChapTitle = chapTitleRaw.toLowerCase().trim();
 
-    let targetSubject = updatedCourse.subjects.find((s: any) => (s.title || "").toLowerCase().trim() === cleanSubTitle);
-    
+    let targetSubject = updatedCourse.subjects.find((s: any) => (s.title || "").toLowerCase().trim() === subTitleRaw.toLowerCase().trim());
     if (!targetSubject) { 
       targetSubject = { id: `sub-${Date.now()}`, title: subTitleRaw, chapters: [] }; 
       updatedCourse.subjects.push(targetSubject); 
     }
     
-    let targetChapter = targetSubject.chapters.find((c: any) => (c.title || "").toLowerCase().trim() === cleanChapTitle);
-    
+    let targetChapter = targetSubject.chapters.find((c: any) => (c.title || "").toLowerCase().trim() === chapTitleRaw.toLowerCase().trim());
     if (!targetChapter) { 
       targetChapter = { id: `ch-${Date.now()}`, title: chapTitleRaw, lectures: [] }; 
       targetSubject.chapters.push(targetChapter); 
@@ -123,13 +99,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
     if (post.type === 'youtube' || post.type === 'video') {
       const newLecture: Lecture = { id: `lec-${Date.now()}`, title: post.title || "Untitled Lecture", videoUrl: post.url || "", duration: 'Live Sync', description: 'Auto-organized from Telegram channel.', resources: [] };
       targetChapter.lectures.push(newLecture);
-    } else if (post.type === 'pdf') {
-      if (targetChapter.lectures.length > 0) {
-        targetChapter.lectures[targetChapter.lectures.length - 1].resources.push({ id: `res-${Date.now()}`, title: post.title || "Study Material", url: post.url || "", type: 'pdf' });
-      } else {
-        const pdfLecture: Lecture = { id: `lec-${Date.now()}`, title: `Study Material: ${post.title || "Resource"}`, videoUrl: '', duration: '--:--', description: 'Lecture notes and resources.', resources: [{ id: `res-${Date.now()}`, title: post.title || "Study Material", url: post.url || "", type: 'pdf' }] };
-        targetChapter.lectures.push(pdfLecture);
-      }
     }
     
     await saveCourseToDB(updatedCourse);
@@ -139,14 +108,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
     setSortSuggestions(remainingSuggestions);
   };
 
-  const handleAddStaff = async () => {
-    if (!newStaff.name || !newStaff.email || !newStaff.password) return alert("All fields are required.");
-    await addStaffToDB({ id: `staff-${Date.now()}`, ...newStaff, joinedAt: new Date().toLocaleDateString() });
-    setNewStaff({ name: '', email: '', password: '', role: 'manager' });
-  };
-
   const handleSaveBatch = async () => {
-    if (!currentBatch.title || !currentBatch.title.trim()) return alert("Batch title is required.");
+    if (!currentBatch.title.trim()) return alert("Batch title required.");
     setSaveStatus('saving');
     try {
       await saveCourseToDB(editingId ? currentBatch : { ...currentBatch, id: `batch-${Date.now()}` });
@@ -157,201 +120,195 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
   const isAdmin = userRole === 'admin';
 
   return (
-    <div className="space-y-10 animate-fadeIn pb-24 text-left">
-      <div className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-10">
-        <div className="flex items-center gap-6">
-           <div className="w-16 h-16 bg-slate-900 rounded-[1.8rem] flex items-center justify-center text-white shadow-2xl"><LayoutDashboard size={32} /></div>
+    <div className="space-y-8 animate-fadeIn pb-20 text-left">
+      <div className="bg-white p-8 rounded-xl border border-slate-100 shadow-sm flex flex-col xl:flex-row items-center justify-between gap-8">
+        <div className="flex items-center gap-5">
+           <div className="w-14 h-14 bg-slate-900 rounded-lg flex items-center justify-center text-white shadow-xl"><LayoutDashboard size={28} /></div>
            <div>
-             <h1 className="text-4xl font-black text-slate-900 tracking-tight">Portal Console</h1>
-             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
-               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-               Session: Professional Secure
+             <h1 className="text-3xl font-black text-slate-900 tracking-tight">Portal Administration</h1>
+             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1 flex items-center gap-2">
+               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+               Faculty Session Verified
              </p>
            </div>
         </div>
         
-        <div className="flex bg-slate-50 p-2.5 rounded-[1.8rem] border border-slate-100 overflow-x-auto max-w-full">
-           <button onClick={() => setActiveTab('batches')} className={`px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'batches' ? 'bg-white text-blue-600 shadow-xl border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}>Curriculum</button>
-           <button onClick={() => setActiveTab('inbox')} className={`px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'inbox' ? 'bg-white text-blue-600 shadow-xl border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}>
+        <div className="flex bg-slate-50 p-1.5 rounded-lg border border-slate-200 overflow-x-auto max-w-full no-scrollbar">
+           <button onClick={() => setActiveTab('batches')} className={`px-6 py-3 rounded-md text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'batches' ? 'bg-white text-blue-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>Curriculum</button>
+           <button onClick={() => setActiveTab('inbox')} className={`px-6 py-3 rounded-md text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${activeTab === 'inbox' ? 'bg-white text-blue-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>
              <Inbox size={14}/> Ingestor
            </button>
-           <button onClick={() => setActiveTab('notices')} className={`px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'notices' ? 'bg-white text-blue-600 shadow-xl border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}>Updates</button>
+           <button onClick={() => setActiveTab('notices')} className={`px-6 py-3 rounded-md text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'notices' ? 'bg-white text-blue-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>Notices</button>
            {isAdmin && (
              <>
-               <button onClick={() => setActiveTab('staff')} className={`px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'staff' ? 'bg-white text-blue-600 shadow-xl border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}>Faculty</button>
-               <button onClick={() => setActiveTab('config')} className={`px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-white text-blue-600 shadow-xl border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}>System</button>
+               <button onClick={() => setActiveTab('staff')} className={`px-6 py-3 rounded-md text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'staff' ? 'bg-white text-blue-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>Staff</button>
+               <button onClick={() => setActiveTab('config')} className={`px-6 py-3 rounded-md text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'config' ? 'bg-white text-blue-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>Settings</button>
              </>
            )}
         </div>
       </div>
 
-      {activeTab === 'batches' && (
-        <div className="space-y-10">
-          <div className="flex justify-between items-center px-6">
-             <h2 className="text-2xl font-black text-slate-900 tracking-tight">Active Learning Batches</h2>
-             <button onClick={() => { setCurrentBatch(emptyBatch); setEditingId(null); setIsModalOpen(true); }} className="bg-blue-600 text-white px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-3 shadow-2xl shadow-blue-500/20">
-               <Plus size={20} /> Initialize New Batch
-             </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-             {courses.length > 0 ? courses.map(course => (
-               <div key={course.id} className="bg-white p-8 rounded-[3.5rem] border border-slate-100 hover:shadow-2xl transition-all group">
-                  <div className="aspect-video rounded-[2.5rem] overflow-hidden mb-8 relative">
-                    <img src={course.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                  </div>
-                  <h3 className="font-black text-slate-900 text-2xl mb-8 truncate">{course.title}</h3>
-                  <div className="flex gap-4">
-                    <button onClick={() => { setCurrentBatch(course); setEditingId(course.id); setIsModalOpen(true); }} className="flex-1 bg-slate-900 text-white py-5 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg">Manage Content</button>
-                    <button onClick={() => deleteCourseFromDB(course.id)} className="p-5 bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-sm"><Trash2 size={24}/></button>
-                  </div>
-               </div>
-             )) : (
-               <div className="col-span-full py-32 text-center bg-slate-50/50 rounded-[4rem] border-2 border-dashed border-slate-100">
-                  <Database className="mx-auto text-slate-200 mb-8" size={80} />
-                  <p className="text-slate-400 font-black text-xl">Curriculum Vault is Empty</p>
-                  <p className="text-[11px] uppercase tracking-widest font-black text-slate-300 mt-3">Start by seeding Project 45 from the 'System' tab.</p>
-               </div>
-             )}
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'inbox' && (
-        <div className="space-y-10">
-           <div className="bg-slate-900 p-12 rounded-[4rem] text-white shadow-2xl relative overflow-hidden">
-              <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
-                <div>
-                  <h2 className="text-4xl font-black tracking-tight flex items-center gap-4"><Zap className="text-blue-500 fill-blue-500" size={40}/> AI Academic Ingestor</h2>
-                  <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mt-3">Syncing Live Feed from <span className="text-blue-400">Telegram Hub</span></p>
-                </div>
-                <button onClick={handleAISortAll} disabled={isSorting || telegramPosts.filter(p => !p.isIngested).length === 0} className="bg-blue-600 text-white px-12 py-6 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-500 transition-all flex items-center gap-4 shadow-2xl shadow-blue-500/30 disabled:opacity-50">
-                  {isSorting ? <Loader2 className="animate-spin" size={24}/> : <Sparkles size={24}/>} Analyze Resource Stream
-                </button>
-              </div>
-              <div className="absolute right-[-5%] bottom-[-20%] opacity-5 rotate-12">
-                <Inbox size={300} />
-              </div>
-           </div>
-
-           <div className="grid grid-cols-1 gap-8">
-              {telegramPosts.filter(p => !p.isIngested).map(post => {
-                 const sug = sortSuggestions[post.id];
-                 return (
-                  <div key={post.id} className="bg-white p-10 rounded-[3.5rem] border border-slate-100 flex flex-col lg:flex-row lg:items-center gap-10 group hover:shadow-2xl transition-all">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-4 mb-4">
-                        <span className={`px-5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] ${post.type === 'pdf' ? 'bg-orange-50 text-orange-600 border border-orange-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>{post.type}</span>
-                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{new Date(post.timestamp).toLocaleString()}</span>
-                      </div>
-                      <h4 className="font-black text-slate-900 text-2xl leading-tight mb-3">{post.title || "Untitled Resource"}</h4>
-                      <p className="text-[11px] text-slate-400 font-mono bg-slate-50 px-3 py-1.5 rounded-lg inline-block">{post.url}</p>
+      <div className="bg-white min-h-[600px] rounded-xl border border-slate-100 p-8 shadow-sm">
+        {activeTab === 'batches' && (
+          <div className="space-y-8 animate-fadeIn">
+            <div className="flex justify-between items-center">
+               <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">Academic Curriculum</h2>
+               <button onClick={() => { setCurrentBatch(emptyBatch); setEditingId(null); setIsModalOpen(true); }} className="bg-blue-600 text-white px-8 py-4 rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg">
+                 <Plus size={18} /> New Batch
+               </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+               {courses.length > 0 ? courses.map(course => (
+                 <div key={course.id} className="bg-slate-50 p-6 rounded-lg border border-slate-200 group hover:border-blue-400 transition-all">
+                    <div className="aspect-video rounded-md overflow-hidden mb-6">
+                      <img src={course.image} className="w-full h-full object-cover" />
                     </div>
-                    {sug ? (
-                      <div className="flex flex-col sm:flex-row items-center gap-10 bg-blue-50/40 p-8 rounded-[2.5rem] border border-blue-100/50 animate-slideUp">
-                         <div className="text-left flex-1 min-w-[280px] space-y-2">
-                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4 flex items-center gap-2"><Sparkles size={14}/> Academic Recommendation</p>
-                            <p className="text-sm font-bold text-slate-800"><span className="text-slate-400 uppercase text-[9px] mr-2">Target Batch:</span> {courses.find(c => c.id === sug.courseId)?.title || "General Batch"}</p>
-                            <p className="text-sm font-bold text-slate-800"><span className="text-slate-400 uppercase text-[9px] mr-2">Chapter:</span> {sug.chapterTitle}</p>
-                         </div>
-                         <button onClick={() => applyIngestion(post.id)} className="bg-slate-900 text-white px-10 py-5 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center gap-3 shadow-lg">
-                            <Check size={20}/> Publish to Batch
-                         </button>
+                    <h3 className="font-black text-slate-900 text-lg mb-6 truncate uppercase tracking-tight">{course.title}</h3>
+                    <div className="flex gap-3">
+                      <button onClick={() => { setCurrentBatch(course); setEditingId(course.id); setIsModalOpen(true); }} className="flex-1 bg-slate-900 text-white py-3.5 rounded-md font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-md">Edit Content</button>
+                      <button onClick={() => deleteCourseFromDB(course.id)} className="p-3.5 bg-red-50 text-red-500 rounded-md hover:bg-red-500 hover:text-white transition-all shadow-sm"><Trash2 size={20}/></button>
+                    </div>
+                 </div>
+               )) : (
+                 <div className="col-span-full py-24 text-center">
+                    <Database className="mx-auto text-slate-200 mb-6" size={60} />
+                    <p className="text-slate-400 font-black text-lg">Curriculum Vault Empty</p>
+                 </div>
+               )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'inbox' && (
+          <div className="space-y-8 animate-fadeIn">
+             <div className="bg-slate-900 p-10 rounded-xl text-white shadow-xl border border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div>
+                  <h2 className="text-3xl font-black tracking-tight flex items-center gap-3"><Zap className="text-blue-500 fill-blue-500" size={32}/> AI Ingestor</h2>
+                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-2">Live Telegram Sync Engine</p>
+                </div>
+                <button onClick={handleAISortAll} disabled={isSorting || telegramPosts.filter(p => !p.isIngested).length === 0} className="bg-blue-600 text-white px-10 py-5 rounded-lg font-black text-xs uppercase tracking-widest hover:bg-blue-500 transition-all flex items-center gap-3 shadow-xl disabled:opacity-50">
+                  {isSorting ? <Loader2 className="animate-spin" size={20}/> : <Sparkles size={20}/>} Analyze Feed
+                </button>
+             </div>
+
+             <div className="space-y-6">
+                {telegramPosts.filter(p => !p.isIngested).map(post => {
+                   const sug = sortSuggestions[post.id];
+                   return (
+                    <div key={post.id} className="bg-white p-6 rounded-lg border border-slate-200 flex flex-col lg:flex-row lg:items-center gap-8 group hover:border-blue-300 transition-all">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-4 mb-3">
+                          <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded text-[9px] font-black uppercase tracking-widest border border-blue-100">{post.type}</span>
+                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{new Date(post.timestamp).toLocaleDateString()}</span>
+                        </div>
+                        <h4 className="font-black text-slate-900 text-lg mb-2">{post.title || "Telegram Resource"}</h4>
                       </div>
-                    ) : (
-                      <div className="text-slate-300 text-[11px] font-black uppercase tracking-widest bg-slate-50/50 px-10 py-6 rounded-[2.5rem] border border-dashed border-slate-200">Awaiting AI Mapping</div>
-                    )}
-                    <button onClick={() => markPostAsIngested(post.id)} className="p-5 text-slate-200 hover:text-red-500 transition-colors"><X size={32}/></button>
-                  </div>
-                 );
-              })}
+                      {sug && (
+                        <div className="flex flex-col sm:flex-row items-center gap-6 bg-blue-50/50 p-6 rounded-lg border border-blue-100 flex-1">
+                           <div className="text-left flex-1 space-y-1">
+                              <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest">Target Match</p>
+                              <p className="text-xs font-bold text-slate-800">{courses.find(c => c.id === sug.courseId)?.title || "General Batch"}</p>
+                           </div>
+                           <button onClick={() => applyIngestion(post.id)} className="bg-slate-900 text-white px-6 py-3 rounded-md font-black text-[9px] uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center gap-2 shadow-md">
+                              <Check size={16}/> Ingest Now
+                           </button>
+                        </div>
+                      )}
+                      <button onClick={() => markPostAsIngested(post.id)} className="p-3 text-slate-200 hover:text-red-500 transition-colors"><X size={24}/></button>
+                    </div>
+                   );
+                })}
+             </div>
+          </div>
+        )}
+
+        {/* NOTICES, STAFF, CONFIG tabs following the same rectangular logic... */}
+        {(activeTab === 'notices' || activeTab === 'staff' || activeTab === 'config') && (
+           <div className="py-20 text-center text-slate-300 animate-fadeIn">
+              <SettingsIcon size={48} className="mx-auto mb-4 opacity-20" />
+              <p className="text-xs font-black uppercase tracking-widest">Section under management maintenance</p>
            </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-slate-950/90 backdrop-blur-xl animate-fadeIn">
-           <div className="bg-white w-full max-w-6xl h-[92vh] rounded-[4rem] shadow-2xl flex flex-col overflow-hidden border border-white/20">
-              <div className="p-12 border-b border-slate-100 flex justify-between items-center bg-white z-10">
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-sm animate-fadeIn">
+           <div className="bg-white w-full max-w-6xl max-h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden border border-white/20">
+              <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
                  <div>
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tighter">Syllabus Orchestrator</h2>
-                    <p className="text-slate-400 text-[11px] font-black uppercase tracking-widest mt-2">Managing Batch: {currentBatch.title || 'Initializing...'}</p>
+                    <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Batch Orchestrator</h2>
+                    <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mt-1">Configuring: {currentBatch.title || 'New Curriculum'}</p>
                  </div>
-                 <button onClick={() => setIsModalOpen(false)} className="p-5 hover:bg-slate-50 rounded-full text-slate-300 transition-colors"><X size={40}/></button>
+                 <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-slate-50 rounded-lg text-slate-300 transition-colors"><X size={32}/></button>
               </div>
-              <div className="flex-1 overflow-y-auto p-12 bg-slate-50/30">
-                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                    <div className="lg:col-span-4 space-y-10">
-                       <div className="bg-white p-10 rounded-[3rem] border border-slate-100 space-y-8 shadow-sm">
-                          <h3 className="font-black text-slate-900 text-xs uppercase tracking-widest flex items-center gap-3"><Image size={20} className="text-blue-500"/> Batch Profile</h3>
-                          <div className="aspect-video bg-slate-50 rounded-[2.5rem] overflow-hidden relative border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer group" onClick={() => fileInputRef.current?.click()}>
-                             {currentBatch.image ? <img src={currentBatch.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /> : <><Upload size={48} className="text-slate-200"/><span className="text-[11px] font-black text-slate-400 uppercase mt-4">Upload Cover</span></>}
+              <div className="flex-1 overflow-y-auto p-8 bg-slate-50/30">
+                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className="lg:col-span-4 space-y-8">
+                       <div className="bg-white p-8 rounded-lg border border-slate-100 space-y-6 shadow-sm">
+                          <h3 className="font-black text-slate-900 text-[10px] uppercase tracking-widest border-b pb-3">Batch Identity</h3>
+                          <div className="aspect-video bg-slate-50 rounded-lg overflow-hidden relative border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer group" onClick={() => fileInputRef.current?.click()}>
+                             {currentBatch.image ? <img src={currentBatch.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /> : <Upload size={32} className="text-slate-200"/>}
                              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onloadend = () => setCurrentBatch({...currentBatch, image: r.result as string}); r.readAsDataURL(f); } }} />
                           </div>
-                          <div className="space-y-5">
-                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Batch Identification</label>
-                                <input type="text" placeholder="e.g. Lakshya JEE 2025" value={currentBatch.title} onChange={e => setCurrentBatch({...currentBatch, title: e.target.value})} className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl font-black text-sm outline-none focus:border-blue-500 transition-all" />
-                             </div>
-                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Enrollment Value (₹)</label>
-                                <input type="number" placeholder="0 for free access" value={currentBatch.price} onChange={e => setCurrentBatch({...currentBatch, price: Number(e.target.value)})} className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl font-black text-sm outline-none focus:border-blue-500 transition-all" />
-                             </div>
+                          <div className="space-y-4">
+                             <input type="text" placeholder="Batch Title" value={currentBatch.title} onChange={e => setCurrentBatch({...currentBatch, title: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-lg font-black text-sm outline-none focus:border-blue-500 transition-all" />
+                             <input type="number" placeholder="Access Fee (₹)" value={currentBatch.price} onChange={e => setCurrentBatch({...currentBatch, price: Number(e.target.value)})} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-lg font-black text-sm outline-none focus:border-blue-500 transition-all" />
                           </div>
                        </div>
                     </div>
-                    <div className="lg:col-span-8 space-y-10">
-                       <div className="flex items-center justify-between px-2">
-                          <h3 className="font-black text-2xl text-slate-900 tracking-tight">Batch Hierarchy</h3>
-                          <button onClick={() => setCurrentBatch({...currentBatch, subjects: [...(currentBatch.subjects || []), { id: `sub-${Date.now()}`, title: 'New Subject', chapters: [] }]})} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center gap-3 shadow-xl"><Plus size={18}/> Add Subject</button>
+                    <div className="lg:col-span-8 space-y-8">
+                       <div className="flex items-center justify-between">
+                          <h3 className="font-black text-xl text-slate-900 tracking-tight uppercase">Syllabus Structure</h3>
+                          <button onClick={() => setCurrentBatch({...currentBatch, subjects: [...(currentBatch.subjects || []), { id: `sub-${Date.now()}`, title: 'New Subject', chapters: [] }]})} className="bg-slate-900 text-white px-6 py-3 rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center gap-2"><Plus size={16}/> Add Subject</button>
                        </div>
-                       <div className="space-y-8">
+                       <div className="space-y-6">
                           {currentBatch.subjects?.map((sub) => (
-                             <div key={sub.id} className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-sm">
-                                <div className="p-8 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => setExpandedSubject(expandedSubject === sub.id ? null : sub.id)}>
-                                   <div className="flex items-center gap-6 flex-1">
-                                      <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner"><Layers size={28}/></div>
-                                      <input type="text" value={sub.title} onClick={e => e.stopPropagation()} onChange={e => setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, title: e.target.value} : s)})} className="bg-transparent font-black text-slate-900 outline-none w-full text-2xl tracking-tight" />
+                             <div key={sub.id} className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                                <div className="p-6 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => setExpandedSubject(expandedSubject === sub.id ? null : sub.id)}>
+                                   <div className="flex items-center gap-4 flex-1">
+                                      <Layers size={20} className="text-blue-600"/>
+                                      <input type="text" value={sub.title} onClick={e => e.stopPropagation()} onChange={e => setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, title: e.target.value} : s)})} className="bg-transparent font-black text-slate-900 outline-none w-full text-lg tracking-tight uppercase" />
                                    </div>
-                                   <div className="flex items-center gap-4">
-                                      <button onClick={e => { e.stopPropagation(); if(confirm('Delete subject?')) setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.filter(s => s.id !== sub.id)}); }} className="p-4 text-slate-200 hover:text-red-500 transition-colors"><Trash2 size={24}/></button>
-                                      {expandedSubject === sub.id ? <ChevronUp size={32} className="text-slate-300"/> : <ChevronDown size={32} className="text-slate-300"/>}
+                                   <div className="flex items-center gap-3">
+                                      <button onClick={e => { e.stopPropagation(); if(confirm('Remove?')) setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.filter(s => s.id !== sub.id)}); }} className="p-2 text-slate-200 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
+                                      {expandedSubject === sub.id ? <ChevronUp size={24}/> : <ChevronDown size={24}/>}
                                    </div>
                                 </div>
                                 {expandedSubject === sub.id && (
-                                   <div className="p-10 border-t border-slate-50 bg-slate-50/20 space-y-10">
+                                   <div className="p-6 border-t border-slate-100 bg-slate-50/20 space-y-6">
                                       {sub.chapters.map((chap) => (
-                                         <div key={chap.id} className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
-                                            <div className="p-6 bg-slate-50/50 flex items-center justify-between cursor-pointer" onClick={() => setExpandedChapter(expandedChapter === chap.id ? null : chap.id)}>
-                                               <div className="flex items-center gap-4 flex-1"><Folder size={24} className="text-slate-400"/><input type="text" value={chap.title} onClick={e => e.stopPropagation()} onChange={e => setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, title: e.target.value} : c)} : s)})} className="bg-transparent font-black text-slate-800 outline-none w-full text-lg" /></div>
-                                               <div className="flex items-center gap-3"><button onClick={e => { e.stopPropagation(); setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.filter(c => c.id !== chap.id)} : s)}); }} className="p-3 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={20}/></button>{expandedChapter === chap.id ? <ChevronUp size={28}/> : <ChevronDown size={28}/>}</div>
+                                         <div key={chap.id} className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                                            <div className="p-4 bg-slate-50/50 flex items-center justify-between cursor-pointer" onClick={() => setExpandedChapter(expandedChapter === chap.id ? null : chap.id)}>
+                                               <div className="flex items-center gap-3 flex-1"><Folder size={18} className="text-slate-400"/><input type="text" value={chap.title} onClick={e => e.stopPropagation()} onChange={e => setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, title: e.target.value} : c)} : s)})} className="bg-transparent font-black text-slate-700 outline-none w-full text-sm uppercase" /></div>
+                                               <div className="flex items-center gap-2"><button onClick={e => { e.stopPropagation(); setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.filter(c => c.id !== chap.id)} : s)}); }} className="p-2 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>{expandedChapter === chap.id ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}</div>
                                             </div>
                                             {expandedChapter === chap.id && (
-                                               <div className="p-8 border-t bg-white space-y-6">
+                                               <div className="p-6 border-t bg-white space-y-4">
                                                   {chap.lectures.map(lec => (
-                                                     <div key={lec.id} className="bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100 flex flex-col gap-5">
-                                                        <div className="flex justify-between items-start">
-                                                           <div className="flex-1 flex gap-4">
-                                                              <input value={lec.title} onChange={e => setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, lectures: c.lectures.map(l => l.id === lec.id ? {...l, title: e.target.value} : l)} : c)} : s)})} className="flex-1 bg-white px-5 py-4 rounded-xl font-black text-sm outline-none border border-slate-200" placeholder="Lecture Title" />
-                                                           </div>
+                                                     <div key={lec.id} className="bg-slate-50 p-5 rounded-lg border border-slate-100 flex flex-col gap-4">
+                                                        <div className="flex justify-between items-start gap-4">
+                                                           <input value={lec.title} onChange={e => setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, lectures: c.lectures.map(l => l.id === lec.id ? {...l, title: e.target.value} : l)} : c)} : s)})} className="flex-1 bg-white px-4 py-3 rounded-md font-black text-xs outline-none border border-slate-200 uppercase" placeholder="Lecture Title" />
                                                            <div className="flex items-center gap-2">
-                                                              <button 
-                                                                onClick={() => copyDirectLink(currentBatch.id, lec.id)}
-                                                                className={`p-4 rounded-xl shadow-sm border border-slate-200 transition-all flex items-center gap-2 font-black text-[10px] uppercase tracking-widest ${copiedId === lec.id ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600 hover:text-blue-600 hover:border-blue-200'}`}
-                                                              >
-                                                                {copiedId === lec.id ? <ClipboardCheck size={14}/> : <LinkIcon size={14}/>} {copiedId === lec.id ? 'Copied' : 'Access Link'}
-                                                              </button>
-                                                              <button onClick={() => setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, lectures: c.lectures.filter(l => l.id !== lec.id)} : c)} : s)})} className="p-3 text-red-200 hover:text-red-500 transition-colors"><X size={28}/></button>
+                                                              {isAdmin && (
+                                                                <button 
+                                                                  onClick={() => copyDirectLink(currentBatch.id, lec.id)}
+                                                                  className={`px-4 py-3 rounded-md border transition-all flex items-center gap-2 font-black text-[9px] uppercase tracking-widest ${copiedId === lec.id ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600 hover:text-blue-600 hover:border-blue-200'}`}
+                                                                >
+                                                                  {copiedId === lec.id ? <ClipboardCheck size={12}/> : <LinkIcon size={12}/>} Link
+                                                                </button>
+                                                              )}
+                                                              <button onClick={() => setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, lectures: c.lectures.filter(l => l.id !== lec.id)} : c)} : s)})} className="p-2.5 text-red-300 hover:text-red-500 transition-colors"><X size={20}/></button>
                                                            </div>
                                                         </div>
-                                                        <input value={lec.videoUrl} onChange={e => setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, lectures: c.lectures.map(l => l.id === lec.id ? {...l, videoUrl: e.target.value} : l)} : c)} : s)})} className="w-full bg-white px-5 py-4 rounded-xl text-[12px] font-mono text-slate-500 outline-none border border-slate-200" placeholder="Video Resource URL (YouTube/Direct)" />
+                                                        <input value={lec.videoUrl} onChange={e => setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, lectures: c.lectures.map(l => l.id === lec.id ? {...l, videoUrl: e.target.value} : l)} : c)} : s)})} className="w-full bg-white px-4 py-3 rounded-md text-[10px] font-mono text-slate-500 outline-none border border-slate-200" placeholder="Resource Link" />
                                                      </div>
                                                   ))}
-                                                  <button onClick={() => { const newLec: Lecture = { id: `lec-${Date.now()}`, title: 'New Lecture', videoUrl: '', duration: '00:00', description: '', resources: [] }; setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, lectures: [...c.lectures, newLec]} : c)} : s)}); }} className="w-full py-6 border-2 border-dashed border-slate-200 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all flex items-center justify-center gap-3">+ Add Lecture Module</button>
+                                                  <button onClick={() => { const newLec: Lecture = { id: `lec-${Date.now()}`, title: 'New Lecture', videoUrl: '', duration: '00:00', description: '', resources: [] }; setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: s.chapters.map(c => c.id === chap.id ? {...c, lectures: [...c.lectures, newLec]} : c)} : s)}); }} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all">+ Add Module</button>
                                                </div>
                                             )}
                                          </div>
                                       ))}
-                                      <button onClick={() => { const newCh: Chapter = { id: `ch-${Date.now()}`, title: 'New Chapter', lectures: [] }; setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: [...s.chapters, newCh]} : s)}); }} className="w-full py-6 bg-white border border-slate-200 rounded-[1.8rem] font-black text-[11px] text-blue-600 uppercase tracking-widest hover:bg-blue-50 transition-all">+ Initialize New Chapter</button>
+                                      <button onClick={() => { const newCh: Chapter = { id: `ch-${Date.now()}`, title: 'New Chapter', lectures: [] }; setCurrentBatch({...currentBatch, subjects: currentBatch.subjects.map(s => s.id === sub.id ? {...s, chapters: [...s.chapters, newCh]} : s)}); }} className="w-full py-4 bg-white border border-slate-200 rounded-lg font-black text-[9px] text-blue-600 uppercase tracking-widest hover:bg-blue-50 transition-all">+ New Chapter</button>
                                    </div>
                                 )}
                              </div>
@@ -360,10 +317,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                     </div>
                  </div>
               </div>
-              <div className="p-12 border-t border-slate-100 bg-white flex justify-end gap-8 shadow-2xl">
-                 <button onClick={() => setIsModalOpen(false)} className="px-12 py-6 font-black text-slate-400 hover:text-slate-800 transition-all uppercase tracking-[0.2em] text-xs">Discard Changes</button>
-                 <button onClick={handleSaveBatch} disabled={saveStatus !== 'idle'} className="px-20 py-6 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-700 transition-all shadow-2xl shadow-blue-500/30">
-                    {saveStatus === 'saving' ? <Loader2 className="animate-spin" size={28}/> : (saveStatus === 'success' ? 'Database Synced!' : 'Confirm & Publish')}
+              <div className="p-8 border-t border-slate-100 bg-white flex justify-end gap-6 shadow-2xl">
+                 <button onClick={() => setIsModalOpen(false)} className="px-10 py-5 font-black text-slate-400 hover:text-slate-800 transition-all uppercase tracking-widest text-[10px]">Discard</button>
+                 <button onClick={handleSaveBatch} disabled={saveStatus !== 'idle'} className="px-16 py-5 bg-blue-600 text-white rounded-lg font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl">
+                    {saveStatus === 'saving' ? <Loader2 className="animate-spin" size={24}/> : 'Publish Updates'}
                  </button>
               </div>
            </div>
