@@ -1,17 +1,18 @@
+
 export interface Resource {
   id: string;
   title: string;
-  url: string; // Can be a URL or Base64 string
+  url: string;
   type: 'pdf' | 'link';
 }
 
 export interface Lecture {
   id: string;
   title: string;
-  videoUrl: string; // Changed from youtubeId to support multiple sources
+  videoUrl: string;
   duration: string;
   description: string;
-  resources: Resource[]; // Notes/PDFs specific to this lecture
+  resources: Resource[];
 }
 
 export interface Chapter {
@@ -36,9 +37,22 @@ export interface Course {
   students: number;
   image: string;
   category: string;
-  subjects: Subject[]; // Changed from chapters to subjects
+  subjects: Subject[];
   shortLink?: string;
   accessCode?: string;
+}
+
+export interface Notice {
+  id: string;
+  text: string;
+  type: 'urgent' | 'update' | 'new_batch';
+  timestamp: number;
+}
+
+export interface Banner {
+  id: string;
+  imageUrl: string;
+  targetBatchId?: string;
 }
 
 export interface ChatMessage {

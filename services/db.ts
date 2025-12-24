@@ -2,9 +2,45 @@
 import { db } from '../firebase';
 import { 
   collection, doc, setDoc, deleteDoc, 
-  onSnapshot, getDocs, query, where, getDoc, orderBy, limit, updateDoc 
+  onSnapshot, getDocs, query, where, getDoc, orderBy, limit, updateDoc, addDoc 
 } from 'firebase/firestore';
-import { Course, StaffMember, SiteSettings } from '../types';
+import { Course, StaffMember, SiteSettings, Notice, Banner } from '../types';
+
+// --- NOTICES ---
+export const subscribeToNotices = (callback: (notices: Notice[]) => void) => {
+  const q = query(collection(db, "notices"), orderBy("timestamp", "desc"), limit(5));
+  return onSnapshot(q, (snapshot) => {
+    const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Notice));
+    callback(data);
+  });
+};
+
+export const addNoticeToDB = async (notice: Partial<Notice>) => {
+  await addDoc(collection(db, "notices"), {
+    ...notice,
+    timestamp: Date.now()
+  });
+};
+
+export const deleteNoticeFromDB = async (id: string) => {
+  await deleteDoc(doc(db, "notices", id));
+};
+
+// --- BANNERS ---
+export const subscribeToBanners = (callback: (banners: Banner[]) => void) => {
+  return onSnapshot(collection(db, "banners"), (snapshot) => {
+    const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Banner));
+    callback(data);
+  });
+};
+
+export const addBannerToDB = async (banner: Partial<Banner>) => {
+  await addDoc(collection(db, "banners"), banner);
+};
+
+export const deleteBannerFromDB = async (id: string) => {
+  await deleteDoc(doc(db, "banners", id));
+};
 
 // --- TELEGRAM LIVE FEED ---
 export interface TelegramPost {
@@ -13,7 +49,7 @@ export interface TelegramPost {
   url: string;
   type: 'youtube' | 'video' | 'pdf' | 'text';
   timestamp: number;
-  isIngested?: boolean; // Track if content has been moved to a batch
+  isIngested?: boolean;
 }
 
 export const subscribeToTelegramFeed = (callback: (posts: TelegramPost[]) => void) => {

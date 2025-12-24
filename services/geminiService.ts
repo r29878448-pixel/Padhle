@@ -37,29 +37,29 @@ export const classifyContent = async (post: TelegramPost, courses: Course[]) => 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `NEW CONTENT ARRIVED:
+      contents: `NEW INCOMING POST:
       Title: "${post.title}"
       Type: "${post.type}"
       
-      EXISTING STRUCTURE: ${JSON.stringify(courseSchema)}`,
+      PORTAL STRUCTURE: ${JSON.stringify(courseSchema)}`,
       config: {
-        systemInstruction: `You are the Lead Academic Coordinator for Study Portal.
-        Your goal is to organize Telegram posts into the correct Batches and Subjects.
+        systemInstruction: `You are the Lead Academic Organizer for Study Portal.
+        Assign this content to the correct Batch, Subject, and Chapter.
         
-        RULES:
-        1. Match the "Title" to the best "Course" and "Subject".
-        2. If the Subject doesn't exist but is clearly mentioned (e.g. "Biology Lecture"), suggest a NEW subject name.
-        3. Extract a clean Chapter Name (e.g. from "Ch-5 Optics Notes", extract "Optics").
-        4. High confidence is required for matching. If unsure, match to the most popular/relevant batch.
+        LOGIC RULES:
+        1. Batch Matching: Identify if it's for Class 9, 10, JEE, NEET, etc.
+        2. Subject Identification: Look for Physics, Chemistry, Maths, etc.
+        3. Chapter Extraction: Clean the title to get the Chapter name (e.g., from "L-02 | Atoms and Molecules", Chapter is "Atoms and Molecules").
+        4. No Fail: If Subject or Chapter is missing in the structure, provide the logical name so it can be created.
         
-        Return ONLY valid JSON matching the schema provided.`,
+        Output ONLY a JSON object. No backticks.`,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            courseId: { type: Type.STRING, description: "ID of the best matched course" },
-            subjectTitle: { type: Type.STRING, description: "Title of the subject (Exact match or new name)" },
-            chapterTitle: { type: Type.STRING, description: "Clean name of the chapter" },
+            courseId: { type: Type.STRING, description: "Matched Course ID" },
+            subjectTitle: { type: Type.STRING, description: "Logical Subject Name" },
+            chapterTitle: { type: Type.STRING, description: "Logical Chapter Name" },
             confidence: { type: Type.NUMBER }
           },
           required: ["courseId", "subjectTitle", "chapterTitle"]
@@ -67,7 +67,9 @@ export const classifyContent = async (post: TelegramPost, courses: Course[]) => 
       }
     });
 
-    return JSON.parse(response.text || "{}");
+    const raw = response.text || "{}";
+    const cleanJson = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanJson);
   } catch (error) {
     console.error("AI Classification Error:", error);
     return null;
