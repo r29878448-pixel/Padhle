@@ -30,14 +30,23 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
 
     const cleanUrl = videoUrl.trim();
     
-    // 1. YouTube Check
-    const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-    const ytMatch = cleanUrl.match(ytRegex);
+    // Helper to extract YouTube ID
+    const getYoutubeId = (url: string) => {
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+      const match = url.match(regExp);
+      return (match && match[2].length === 11) ? match[2] : null;
+    };
+    
+    // Helper to extract Vimeo ID
+    const getVimeoId = (url: string) => {
+      const regExp = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
+      const match = url.match(regExp);
+      return match ? match[1] : null;
+    };
 
-    // 2. Vimeo Check
-    const vimeoRegex = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
-    const vimeoMatch = cleanUrl.match(vimeoRegex);
-
+    const ytId = getYoutubeId(cleanUrl);
+    const vimeoId = getVimeoId(cleanUrl);
+    
     // 3. Direct Video File Check (.mp4, .webm, .ogg)
     const isDirectVideo = /\.(mp4|webm|ogg|m4v)(\?.*)?$/i.test(cleanUrl);
 
@@ -45,13 +54,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
     const tgRegex = /t\.me\/([a-zA-Z0-9_]+)\/([0-9]+)/;
     const tgMatch = cleanUrl.match(tgRegex);
 
-    if (ytMatch) {
+    if (ytId) {
       setPlayerMode('youtube');
-      setProcessedUrl(`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&modestbranding=1&rel=0&iv_load_policy=3&showinfo=0&autohide=1`);
+      // Added origin parameter for security/CORS compliance and allowFullScreen
+      setProcessedUrl(`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&origin=${window.location.origin}`);
       setIsLoading(false);
-    } else if (vimeoMatch) {
+    } else if (vimeoId) {
       setPlayerMode('vimeo');
-      setProcessedUrl(`https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&title=0&byline=0&portrait=0`);
+      setProcessedUrl(`https://player.vimeo.com/video/${vimeoId}?autoplay=1&title=0&byline=0&portrait=0`);
       setIsLoading(false);
     } else if (isDirectVideo) {
       setPlayerMode('direct');
@@ -129,9 +139,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
             <iframe 
               src={processedUrl}
               className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
               title={title}
+              referrerPolicy="strict-origin-when-cross-origin"
             />
           )
         )}
