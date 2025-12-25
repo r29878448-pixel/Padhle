@@ -349,7 +349,8 @@ const App: React.FC = () => {
 
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
                   <div className="xl:col-span-8">
-                    <VideoPlayer videoUrl={selectedLecture.videoUrl} title={selectedLecture.title} />
+                    {/* KEY PROP ADDED HERE TO FORCE REMOUNT ON LECTURE CHANGE */}
+                    <VideoPlayer key={selectedLecture.id} videoUrl={selectedLecture.videoUrl} title={selectedLecture.title} />
                     <div className="bg-white p-8 border border-slate-200 shadow-sm mt-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="space-y-1">

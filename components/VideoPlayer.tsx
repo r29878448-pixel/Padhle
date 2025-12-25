@@ -30,11 +30,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
 
     const cleanUrl = videoUrl.trim();
     
-    // Helper to extract YouTube ID
+    // Helper to extract YouTube ID - relaxed length check
     const getYoutubeId = (url: string) => {
+      // Matches: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID, etc.
       const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
       const match = url.match(regExp);
-      return (match && match[2].length === 11) ? match[2] : null;
+      // Removed strict length check of 11 to support potentially unusual IDs, but typical IDs are 11 chars.
+      return (match && match[2].length >= 10) ? match[2] : null;
     };
     
     // Helper to extract Vimeo ID
