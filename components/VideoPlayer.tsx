@@ -51,17 +51,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
 
     const cleanUrl = videoUrl.trim();
 
-    // If User Forces Embed Mode (Iframe)
-    if (forceEmbed) {
-        setPlayerMode('iframe');
-        setProcessedUrl(cleanUrl);
-        setIsLoading(false);
-        return;
-    }
-
-    // Standard Detection
+    // Standard Detection (Run detection even if forceEmbed is true, to fix the URL format)
     const getYoutubeId = (url: string) => {
-      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+      // Updated Regex to handle /live/, /shorts/, and standard formats
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|live\/|shorts\/)([^#&?]*).*/;
       const match = url.match(regExp);
       return (match && match[2].length >= 10) ? match[2] : null;
     };
@@ -76,6 +69,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
     const vimeoId = getVimeoId(cleanUrl);
     const tgRegex = /t\.me\/([a-zA-Z0-9_]+)\/([0-9]+)/;
     const tgMatch = cleanUrl.match(tgRegex);
+
+    // If User Forces Embed Mode (Iframe), we still want to use the CORRECT embed URL if it's YT/Vimeo
+    if (forceEmbed) {
+        if (ytId) {
+            setPlayerMode('youtube'); // Use youtube mode logic for rendering (iframe)
+            setProcessedUrl(`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&origin=${window.location.origin}`);
+        } else if (vimeoId) {
+            setPlayerMode('vimeo');
+            setProcessedUrl(`https://player.vimeo.com/video/${vimeoId}?autoplay=1&title=0&byline=0&portrait=0`);
+        } else {
+            setPlayerMode('iframe');
+            setProcessedUrl(cleanUrl);
+        }
+        setIsLoading(false);
+        return;
+    }
 
     if (ytId) {
       setPlayerMode('youtube');
@@ -261,7 +270,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
              <div className="flex justify-between items-start">
                 <h3 className="text-white font-black text-base tracking-tight truncate max-w-[80%] uppercase">{title}</h3>
                 <div className="bg-blue-600 px-3 py-1 text-white text-[8px] font-black uppercase tracking-widest border border-blue-500">
-                   {forceEmbed ? 'Embed Mode' : 'Native Player'}
+                   {playerMode === 'native' ? 'Native Player' : 'Secure Stream'}
                 </div>
              </div>
           </div>
