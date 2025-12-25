@@ -1,4 +1,3 @@
-
 import { db } from '../firebase';
 import { 
   collection, doc, setDoc, deleteDoc, 
@@ -42,12 +41,12 @@ export const deleteBannerFromDB = async (id: string) => {
   await deleteDoc(doc(db, "banners", id));
 };
 
-// --- TELEGRAM LIVE FEED ---
+// --- TELEGRAM/MANUAL FEED ---
 export interface TelegramPost {
   id: string;
   title: string;
   url: string;
-  type: 'youtube' | 'video' | 'pdf' | 'text';
+  type: 'youtube' | 'video' | 'pdf' | 'text' | 'telegram';
   timestamp: number;
   isIngested?: boolean;
 }
@@ -58,6 +57,10 @@ export const subscribeToTelegramFeed = (callback: (posts: TelegramPost[]) => voi
     const posts = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as TelegramPost));
     callback(posts);
   });
+};
+
+export const addManualIngestItem = async (post: Partial<TelegramPost>) => {
+  await addDoc(collection(db, "telegram_feed"), post);
 };
 
 export const markPostAsIngested = async (postId: string) => {

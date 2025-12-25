@@ -11,13 +11,15 @@ interface VideoPlayerProps {
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [playerMode, setPlayerMode] = useState<'youtube' | 'vimeo' | 'direct' | 'iframe' | 'none'>('none');
+  const [playerMode, setPlayerMode] = useState<'youtube' | 'vimeo' | 'direct' | 'iframe' | 'telegram' | 'none'>('none');
   const [processedUrl, setProcessedUrl] = useState('');
+  const [telegramPost, setTelegramPost] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setError(null);
     setIsLoading(true);
+    setTelegramPost(null);
 
     if (!videoUrl || typeof videoUrl !== 'string' || videoUrl.trim() === '') {
       setIsLoading(false);
@@ -39,28 +41,53 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
     // 3. Direct Video File Check (.mp4, .webm, .ogg)
     const isDirectVideo = /\.(mp4|webm|ogg|m4v)(\?.*)?$/i.test(cleanUrl);
 
+    // 4. Telegram Post Check
+    const tgRegex = /t\.me\/([a-zA-Z0-9_]+)\/([0-9]+)/;
+    const tgMatch = cleanUrl.match(tgRegex);
+
     if (ytMatch) {
       setPlayerMode('youtube');
       setProcessedUrl(`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&modestbranding=1&rel=0&iv_load_policy=3&showinfo=0&autohide=1`);
+      setIsLoading(false);
     } else if (vimeoMatch) {
       setPlayerMode('vimeo');
       setProcessedUrl(`https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&title=0&byline=0&portrait=0`);
+      setIsLoading(false);
     } else if (isDirectVideo) {
       setPlayerMode('direct');
       setProcessedUrl(cleanUrl);
+      setIsLoading(false);
+    } else if (tgMatch) {
+      setPlayerMode('telegram');
+      setTelegramPost(`${tgMatch[1]}/${tgMatch[2]}`);
+      setIsLoading(false);
     } else {
-      // 4. Default to IFrame (Many EDU platforms use their own players embedded in pages)
+      // 5. Default to IFrame
       setPlayerMode('iframe');
       setProcessedUrl(cleanUrl);
+      setIsLoading(false);
     }
-    
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
   }, [videoUrl]);
+
+  useEffect(() => {
+    if (playerMode === 'telegram' && telegramPost) {
+       const script = document.createElement('script');
+       script.src = "https://telegram.org/js/telegram-widget.js?22";
+       script.setAttribute('data-telegram-post', telegramPost);
+       script.setAttribute('data-width', '100%');
+       script.async = true;
+       
+       const container = document.getElementById('telegram-embed-container');
+       if (container) {
+         container.innerHTML = '';
+         container.appendChild(script);
+       }
+    }
+  }, [playerMode, telegramPost]);
 
   return (
     <div className="w-full space-y-4 animate-fadeIn">
-      <div className="relative w-full aspect-video bg-black rounded-none overflow-hidden shadow-2xl ring-1 ring-slate-800 group border border-slate-900">
+      <div className={`relative w-full ${playerMode === 'telegram' ? 'min-h-[400px] bg-white' : 'aspect-video bg-black'} rounded-none overflow-hidden shadow-2xl ring-1 ring-slate-800 group border border-slate-900`}>
         
         {error && !isLoading && (
           <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center gap-4 p-10 text-center">
@@ -94,6 +121,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
               controls
               autoPlay
             />
+          ) : playerMode === 'telegram' ? (
+             <div className="w-full h-full flex items-center justify-center overflow-y-auto p-4 bg-slate-50">
+               <div id="telegram-embed-container" className="w-full max-w-md flex justify-center"></div>
+             </div>
           ) : (
             <iframe 
               src={processedUrl}
@@ -105,14 +136,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
           )
         )}
 
-        <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/80 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-300">
-           <div className="flex justify-between items-start">
-              <h3 className="text-white font-black text-base tracking-tight truncate max-w-[80%] uppercase">{title}</h3>
-              <div className="bg-blue-600 px-3 py-1 text-white text-[8px] font-black uppercase tracking-widest border border-blue-500">
-                 Secure Link
-              </div>
-           </div>
-        </div>
+        {playerMode !== 'telegram' && (
+          <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/80 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-300">
+             <div className="flex justify-between items-start">
+                <h3 className="text-white font-black text-base tracking-tight truncate max-w-[80%] uppercase">{title}</h3>
+                <div className="bg-blue-600 px-3 py-1 text-white text-[8px] font-black uppercase tracking-widest border border-blue-500">
+                   Secure Link
+                </div>
+             </div>
+          </div>
+        )}
       </div>
       
       <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-3 bg-slate-50 border border-slate-200 shadow-sm gap-4 rounded-none">
@@ -121,7 +154,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
                <Zap size={14} className="text-blue-600"/> High Speed
             </div>
             <div className="flex items-center gap-2 text-[9px] font-black text-slate-500 uppercase tracking-widest">
-               <Monitor size={14} className="text-blue-600"/> 1080p Stream
+               <Monitor size={14} className="text-blue-600"/> {playerMode === 'telegram' ? 'Secure Feed' : '1080p Stream'}
             </div>
          </div>
          <div className="flex items-center gap-3">

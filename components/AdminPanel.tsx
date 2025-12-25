@@ -4,7 +4,7 @@ import {
   Plus, Trash2, X, 
   Upload, Check, LayoutDashboard, ChevronDown, ChevronUp, FileText, Image, Lock, Link as LinkIcon, Layers, Folder, Inbox, Sparkles, Zap,
   Loader2, Database, ClipboardCheck, Settings as SettingsIcon, Globe, User as UserIcon, Bell, Shield, UserPlus, Save, Megaphone,
-  Key, Info
+  Key, Info, ArrowRight
 } from 'lucide-react';
 import { Course, Subject, Chapter, Lecture, StaffMember, SiteSettings, Resource, Notice } from '../types';
 import { 
@@ -19,7 +19,8 @@ import {
   deleteNoticeFromDB,
   addStaffToDB,
   removeStaffFromDB,
-  saveSiteSettings
+  saveSiteSettings,
+  addManualIngestItem
 } from '../services/db';
 import { classifyContent } from '../services/geminiService';
 
@@ -52,6 +53,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
   const [newStaff, setNewStaff] = useState({ name: '', email: '', password: '', role: 'manager' as 'manager' | 'admin' });
   const [tempSettings, setTempSettings] = useState<SiteSettings>(siteSettings);
 
+  // Ingest Form State
+  const [ingestForm, setIngestForm] = useState({ title: '', url: '', type: 'youtube' as 'youtube' | 'pdf' | 'video' | 'text' | 'telegram' });
+  const [ingestStatus, setIngestStatus] = useState<'idle' | 'adding'>('idle');
+
   const [telegramPosts, setTelegramPosts] = useState<TelegramPost[]>([]);
   const [isSorting, setIsSorting] = useState(false);
   const [sortSuggestions, setSortSuggestions] = useState<Record<string, any>>({});
@@ -83,6 +88,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
     setNewNotice({ text: '', type: 'update' });
     setSaveStatus('success');
     setTimeout(() => setSaveStatus('idle'), 2000);
+  };
+
+  const handleManualIngest = async () => {
+    if (!ingestForm.title || !ingestForm.url) return alert("Title and URL are required.");
+    setIngestStatus('adding');
+    await addManualIngestItem({
+      title: ingestForm.title,
+      url: ingestForm.url,
+      type: ingestForm.type,
+      timestamp: Date.now(),
+      isIngested: false
+    });
+    setIngestForm({ title: '', url: '', type: 'youtube' });
+    setIngestStatus('idle');
   };
 
   const handleAddStaff = async () => {
@@ -144,8 +163,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
       targetSubject.chapters.push(targetChapter); 
     }
 
-    if (post.type === 'youtube' || post.type === 'video') {
-      const newLecture: Lecture = { id: `lec-${Date.now()}`, title: post.title || "Untitled Lecture", videoUrl: post.url || "", duration: 'Live Sync', description: 'Auto-organized from Telegram channel.', resources: [] };
+    if (post.type === 'youtube' || post.type === 'video' || post.type === 'telegram') {
+      const newLecture: Lecture = { 
+        id: `lec-${Date.now()}`, 
+        title: post.title || "Untitled Lecture", 
+        videoUrl: post.url || "", 
+        duration: post.type === 'telegram' ? 'Post' : 'Live Sync', 
+        description: 'Auto-organized from feed.', 
+        resources: [] 
+      };
       targetChapter.lectures.push(newLecture);
     }
     
@@ -229,44 +255,78 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
         )}
 
         {activeTab === 'inbox' && (
-          <div className="space-y-6 animate-fadeIn">
+          <div className="space-y-8 animate-fadeIn">
+             {/* Manual Ingest Form */}
+             <div className="bg-slate-50 p-6 border border-slate-200 space-y-4 rounded-none">
+                <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-2"><Zap size={16} className="text-blue-600"/> Manual Resource Ingest</h3>
+                <div className="flex flex-col md:flex-row gap-4 items-end">
+                  <div className="flex-1 space-y-1 w-full">
+                     <label className="text-[8px] font-black uppercase tracking-widest text-slate-400">Resource Title</label>
+                     <input type="text" value={ingestForm.title} onChange={e => setIngestForm({...ingestForm, title: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 font-bold text-xs outline-none focus:border-blue-500 rounded-none" placeholder="e.g., Thermodynamics L-01" />
+                  </div>
+                  <div className="flex-1 space-y-1 w-full">
+                     <label className="text-[8px] font-black uppercase tracking-widest text-slate-400">Content URL</label>
+                     <input type="text" value={ingestForm.url} onChange={e => setIngestForm({...ingestForm, url: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 font-bold text-xs outline-none focus:border-blue-500 rounded-none" placeholder="https://t.me/channel/123" />
+                  </div>
+                  <div className="w-full md:w-32 space-y-1">
+                     <label className="text-[8px] font-black uppercase tracking-widest text-slate-400">Type</label>
+                     <select value={ingestForm.type} onChange={e => setIngestForm({...ingestForm, type: e.target.value as any})} className="w-full px-4 py-3 bg-white border border-slate-300 font-black text-[10px] uppercase outline-none rounded-none">
+                        <option value="youtube">YouTube</option>
+                        <option value="pdf">PDF Doc</option>
+                        <option value="video">Raw Video</option>
+                        <option value="telegram">Telegram</option>
+                     </select>
+                  </div>
+                  <button onClick={handleManualIngest} disabled={ingestStatus === 'adding'} className="bg-slate-900 text-white px-8 py-3 h-[42px] font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-md rounded-none whitespace-nowrap flex items-center justify-center min-w-[120px]">
+                    {ingestStatus === 'adding' ? <Loader2 className="animate-spin" size={14}/> : 'Add to Queue'}
+                  </button>
+                </div>
+             </div>
+
              <div className="bg-slate-900 p-8 text-white border border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6 rounded-none">
                 <div className="text-left">
-                  <h2 className="text-2xl font-black tracking-tight flex items-center gap-3"><Zap className="text-blue-500 fill-blue-500" size={28}/> AI Ingestor</h2>
-                  <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mt-1">Live Academic Pipeline</p>
+                  <h2 className="text-2xl font-black tracking-tight flex items-center gap-3"><Inbox className="text-blue-500" size={28}/> Ingest Queue</h2>
+                  <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mt-1">Pending Resources for Classification</p>
                 </div>
                 <button onClick={handleAISortAll} disabled={isSorting || telegramPosts.filter(p => !p.isIngested).length === 0} className="bg-blue-600 text-white px-8 py-4 font-black text-[10px] uppercase tracking-widest hover:bg-blue-500 transition-all flex items-center gap-3 shadow-lg disabled:opacity-50 rounded-none">
-                  {isSorting ? <Loader2 className="animate-spin" size={16}/> : <Sparkles size={16}/>} Scan Telegram Feed
+                  {isSorting ? <Loader2 className="animate-spin" size={16}/> : <Sparkles size={16}/>} Auto-Classify All
                 </button>
              </div>
 
              <div className="space-y-4">
-                {telegramPosts.filter(p => !p.isIngested).map(post => {
-                   const sug = sortSuggestions[post.id];
-                   return (
-                    <div key={post.id} className="bg-white p-5 border border-slate-200 flex flex-col lg:flex-row lg:items-center gap-6 group hover:border-blue-400 transition-all rounded-none">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="bg-blue-50 text-blue-600 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest border border-blue-100">{post.type}</span>
-                          <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">{new Date(post.timestamp).toLocaleDateString()}</span>
+                {telegramPosts.filter(p => !p.isIngested).length === 0 ? (
+                  <div className="text-center py-10 border border-dashed border-slate-200">
+                     <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest">Queue Empty</p>
+                  </div>
+                ) : (
+                  telegramPosts.filter(p => !p.isIngested).map(post => {
+                     const sug = sortSuggestions[post.id];
+                     return (
+                      <div key={post.id} className="bg-white p-5 border border-slate-200 flex flex-col lg:flex-row lg:items-center gap-6 group hover:border-blue-400 transition-all rounded-none">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="bg-blue-50 text-blue-600 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest border border-blue-100">{post.type}</span>
+                            <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">{new Date(post.timestamp).toLocaleDateString()}</span>
+                          </div>
+                          <h4 className="font-black text-slate-900 text-base">{post.title || "External Resource"}</h4>
+                          <a href={post.url} target="_blank" rel="noreferrer" className="text-[10px] text-slate-400 hover:text-blue-600 flex items-center gap-1 mt-1"><LinkIcon size={10}/> {post.url}</a>
                         </div>
-                        <h4 className="font-black text-slate-900 text-base">{post.title || "External Resource"}</h4>
+                        {sug && (
+                          <div className="flex flex-col sm:flex-row items-center gap-4 bg-blue-50/50 p-4 border border-blue-100 flex-1">
+                             <div className="text-left flex-1">
+                                <p className="text-[7px] font-black text-blue-600 uppercase tracking-widest">Target Mapping</p>
+                                <p className="text-[11px] font-bold text-slate-800 uppercase">{courses.find(c => c.id === sug.courseId)?.title || "General"}</p>
+                             </div>
+                             <button onClick={() => applyIngestion(post.id)} className="bg-slate-900 text-white px-5 py-2 font-black text-[8px] uppercase tracking-widest hover:bg-blue-600 transition-all rounded-none">
+                                <Check size={14}/> Publish
+                             </button>
+                          </div>
+                        )}
+                        <button onClick={() => markPostAsIngested(post.id)} className="p-2 text-slate-200 hover:text-red-500 transition-colors"><X size={20}/></button>
                       </div>
-                      {sug && (
-                        <div className="flex flex-col sm:flex-row items-center gap-4 bg-blue-50/50 p-4 border border-blue-100 flex-1">
-                           <div className="text-left flex-1">
-                              <p className="text-[7px] font-black text-blue-600 uppercase tracking-widest">Target Mapping</p>
-                              <p className="text-[11px] font-bold text-slate-800 uppercase">{courses.find(c => c.id === sug.courseId)?.title || "General"}</p>
-                           </div>
-                           <button onClick={() => applyIngestion(post.id)} className="bg-slate-900 text-white px-5 py-2 font-black text-[8px] uppercase tracking-widest hover:bg-blue-600 transition-all rounded-none">
-                              <Check size={14}/> Publish
-                           </button>
-                        </div>
-                      )}
-                      <button onClick={() => markPostAsIngested(post.id)} className="p-2 text-slate-200 hover:text-red-500 transition-colors"><X size={20}/></button>
-                    </div>
-                   );
-                })}
+                     );
+                  })
+                )}
              </div>
           </div>
         )}
