@@ -4,7 +4,7 @@ import {
   Plus, Trash2, X, 
   Upload, Check, LayoutDashboard, ChevronDown, ChevronUp, FileText, Image, Lock, Link as LinkIcon, Layers, Folder, Inbox, Sparkles, Zap,
   Loader2, Database, ClipboardCheck, Settings as SettingsIcon, Globe, User as UserIcon, Bell, Shield, UserPlus, Save, Megaphone,
-  Key, Info, ArrowRight
+  Key, Info, ArrowRight, CornerDownRight, Target
 } from 'lucide-react';
 import { Course, Subject, Chapter, Lecture, StaffMember, SiteSettings, Resource, Notice } from '../types';
 import { 
@@ -56,6 +56,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
   // Ingest Form State
   const [ingestForm, setIngestForm] = useState({ title: '', url: '', type: 'youtube' as 'youtube' | 'pdf' | 'video' | 'text' | 'telegram' });
   const [ingestStatus, setIngestStatus] = useState<'idle' | 'adding'>('idle');
+  
+  // Direct Placement State
+  const [directPlacement, setDirectPlacement] = useState(false);
+  const [targetBatchId, setTargetBatchId] = useState('');
+  const [targetSubjectId, setTargetSubjectId] = useState('');
+  const [targetChapterId, setTargetChapterId] = useState('');
+  const [targetLectureId, setTargetLectureId] = useState('');
 
   const [telegramPosts, setTelegramPosts] = useState<TelegramPost[]>([]);
   const [isSorting, setIsSorting] = useState(false);
@@ -73,6 +80,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
     const unsubNotices = subscribeToNotices(setNotices);
     return () => { unsubStaff(); unsubTG(); unsubNotices(); };
   }, []);
+
+  // Helpers for dropdowns
+  const selectedBatch = courses.find(c => c.id === targetBatchId);
+  const availableSubjects = selectedBatch?.subjects || [];
+  const selectedSubject = availableSubjects.find(s => s.id === targetSubjectId);
+  const availableChapters = selectedSubject?.chapters || [];
+  const selectedChapter = availableChapters.find(c => c.id === targetChapterId);
+  const availableLectures = selectedChapter?.lectures || [];
 
   const copyDirectLink = (batchId: string, lectureId: string) => {
     const url = `${window.location.origin}${window.location.pathname}?batch_id=${batchId}&child_id=${lectureId}`;
@@ -93,14 +108,64 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
   const handleManualIngest = async () => {
     if (!ingestForm.title || !ingestForm.url) return alert("Title and URL are required.");
     setIngestStatus('adding');
-    await addManualIngestItem({
-      title: ingestForm.title,
-      url: ingestForm.url,
-      type: ingestForm.type,
-      timestamp: Date.now(),
-      isIngested: false
-    });
-    setIngestForm({ title: '', url: '', type: 'youtube' });
+
+    if (directPlacement) {
+        if (!targetBatchId || !targetSubjectId || !targetChapterId) {
+             alert("For direct placement, Batch, Subject, and Chapter are required.");
+             setIngestStatus('idle');
+             return;
+        }
+
+        try {
+            // Deep copy to avoid mutation issues
+            const courseToUpdate = JSON.parse(JSON.stringify(selectedBatch));
+            const sub = courseToUpdate.subjects.find((s:any) => s.id === targetSubjectId);
+            const chap = sub.chapters.find((c:any) => c.id === targetChapterId);
+            
+            if (targetLectureId) {
+                // Add as Resource to existing Lecture
+                const lec = chap.lectures.find((l:any) => l.id === targetLectureId);
+                if (!lec.resources) lec.resources = [];
+                
+                const resType = ingestForm.type === 'pdf' ? 'pdf' : 'link';
+                
+                lec.resources.push({
+                    id: `res-${Date.now()}`,
+                    title: ingestForm.title,
+                    url: ingestForm.url,
+                    type: resType
+                });
+            } else {
+                // Add as New Lecture to Chapter
+                 const newLecture: Lecture = { 
+                    id: `lec-${Date.now()}`, 
+                    title: ingestForm.title, 
+                    videoUrl: ingestForm.url, 
+                    duration: ingestForm.type === 'telegram' ? 'Post' : 'Live Sync', 
+                    description: 'Directly uploaded content.', 
+                    resources: [] 
+                };
+                chap.lectures.push(newLecture);
+            }
+    
+            await saveCourseToDB(courseToUpdate);
+            // Don't reset selection so user can add more to same place easily
+            setIngestForm(prev => ({ ...prev, title: '', url: '' })); // Keep type
+            alert("Content published successfully!");
+        } catch (error) {
+            console.error(error);
+            alert("Failed to publish content.");
+        }
+    } else {
+        await addManualIngestItem({
+          title: ingestForm.title,
+          url: ingestForm.url,
+          type: ingestForm.type,
+          timestamp: Date.now(),
+          isIngested: false
+        });
+        setIngestForm({ title: '', url: '', type: 'youtube' });
+    }
     setIngestStatus('idle');
   };
 
@@ -257,28 +322,76 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
         {activeTab === 'inbox' && (
           <div className="space-y-8 animate-fadeIn">
              {/* Manual Ingest Form */}
-             <div className="bg-slate-50 p-6 border border-slate-200 space-y-4 rounded-none">
-                <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-2"><Zap size={16} className="text-blue-600"/> Manual Resource Ingest</h3>
-                <div className="flex flex-col md:flex-row gap-4 items-end">
-                  <div className="flex-1 space-y-1 w-full">
-                     <label className="text-[8px] font-black uppercase tracking-widest text-slate-400">Resource Title</label>
-                     <input type="text" value={ingestForm.title} onChange={e => setIngestForm({...ingestForm, title: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 font-bold text-xs outline-none focus:border-blue-500 rounded-none" placeholder="e.g., Thermodynamics L-01" />
+             <div className="bg-slate-50 p-6 border border-slate-200 space-y-4 rounded-none transition-all">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-2"><Zap size={16} className="text-blue-600"/> Resource Ingest</h3>
+                  <button onClick={() => setDirectPlacement(!directPlacement)} className={`px-4 py-2 text-[8px] font-black uppercase tracking-widest border transition-all flex items-center gap-2 ${directPlacement ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-400 border-slate-200 hover:border-blue-300'}`}>
+                    <Target size={12}/> {directPlacement ? 'Direct Placement Active' : 'Enable Direct Placement'}
+                  </button>
+                </div>
+                
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col md:flex-row gap-4 items-end">
+                    <div className="flex-1 space-y-1 w-full">
+                      <label className="text-[8px] font-black uppercase tracking-widest text-slate-400">Resource Title</label>
+                      <input type="text" value={ingestForm.title} onChange={e => setIngestForm({...ingestForm, title: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 font-bold text-xs outline-none focus:border-blue-500 rounded-none" placeholder="e.g., Thermodynamics L-01" />
+                    </div>
+                    <div className="flex-1 space-y-1 w-full">
+                      <label className="text-[8px] font-black uppercase tracking-widest text-slate-400">Content URL</label>
+                      <input type="text" value={ingestForm.url} onChange={e => setIngestForm({...ingestForm, url: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 font-bold text-xs outline-none focus:border-blue-500 rounded-none" placeholder="https://t.me/channel/123" />
+                    </div>
+                    <div className="w-full md:w-32 space-y-1">
+                      <label className="text-[8px] font-black uppercase tracking-widest text-slate-400">Type</label>
+                      <select value={ingestForm.type} onChange={e => setIngestForm({...ingestForm, type: e.target.value as any})} className="w-full px-4 py-3 bg-white border border-slate-300 font-black text-[10px] uppercase outline-none rounded-none">
+                          <option value="youtube">YouTube</option>
+                          <option value="pdf">PDF Doc</option>
+                          <option value="video">Raw Video</option>
+                          <option value="telegram">Telegram</option>
+                      </select>
+                    </div>
                   </div>
-                  <div className="flex-1 space-y-1 w-full">
-                     <label className="text-[8px] font-black uppercase tracking-widest text-slate-400">Content URL</label>
-                     <input type="text" value={ingestForm.url} onChange={e => setIngestForm({...ingestForm, url: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 font-bold text-xs outline-none focus:border-blue-500 rounded-none" placeholder="https://t.me/channel/123" />
-                  </div>
-                  <div className="w-full md:w-32 space-y-1">
-                     <label className="text-[8px] font-black uppercase tracking-widest text-slate-400">Type</label>
-                     <select value={ingestForm.type} onChange={e => setIngestForm({...ingestForm, type: e.target.value as any})} className="w-full px-4 py-3 bg-white border border-slate-300 font-black text-[10px] uppercase outline-none rounded-none">
-                        <option value="youtube">YouTube</option>
-                        <option value="pdf">PDF Doc</option>
-                        <option value="video">Raw Video</option>
-                        <option value="telegram">Telegram</option>
-                     </select>
-                  </div>
-                  <button onClick={handleManualIngest} disabled={ingestStatus === 'adding'} className="bg-slate-900 text-white px-8 py-3 h-[42px] font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-md rounded-none whitespace-nowrap flex items-center justify-center min-w-[120px]">
-                    {ingestStatus === 'adding' ? <Loader2 className="animate-spin" size={14}/> : 'Add to Queue'}
+
+                  {directPlacement && (
+                    <div className="p-4 bg-blue-50 border border-blue-100 flex flex-col md:flex-row gap-4 animate-fadeIn">
+                       <div className="flex-1 space-y-1">
+                          <label className="text-[7px] font-black uppercase tracking-widest text-blue-600">Select Batch</label>
+                          <select value={targetBatchId} onChange={e => { setTargetBatchId(e.target.value); setTargetSubjectId(''); setTargetChapterId(''); setTargetLectureId(''); }} className="w-full px-3 py-2 bg-white border border-blue-200 font-bold text-[10px] uppercase outline-none">
+                             <option value="">-- Select Batch --</option>
+                             {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                          </select>
+                       </div>
+                       {targetBatchId && (
+                         <div className="flex-1 space-y-1 animate-fadeIn">
+                            <label className="text-[7px] font-black uppercase tracking-widest text-blue-600">Select Subject</label>
+                            <select value={targetSubjectId} onChange={e => { setTargetSubjectId(e.target.value); setTargetChapterId(''); setTargetLectureId(''); }} className="w-full px-3 py-2 bg-white border border-blue-200 font-bold text-[10px] uppercase outline-none">
+                               <option value="">-- Select Subject --</option>
+                               {availableSubjects.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                            </select>
+                         </div>
+                       )}
+                       {targetSubjectId && (
+                         <div className="flex-1 space-y-1 animate-fadeIn">
+                            <label className="text-[7px] font-black uppercase tracking-widest text-blue-600">Select Chapter</label>
+                            <select value={targetChapterId} onChange={e => { setTargetChapterId(e.target.value); setTargetLectureId(''); }} className="w-full px-3 py-2 bg-white border border-blue-200 font-bold text-[10px] uppercase outline-none">
+                               <option value="">-- Select Chapter --</option>
+                               {availableChapters.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                            </select>
+                         </div>
+                       )}
+                       {targetChapterId && (
+                         <div className="flex-1 space-y-1 animate-fadeIn">
+                            <label className="text-[7px] font-black uppercase tracking-widest text-blue-600">Target Lecture (Optional)</label>
+                            <select value={targetLectureId} onChange={e => setTargetLectureId(e.target.value)} className="w-full px-3 py-2 bg-white border border-blue-200 font-bold text-[10px] uppercase outline-none">
+                               <option value="">-- New Lecture (Default) --</option>
+                               {availableLectures.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+                            </select>
+                         </div>
+                       )}
+                    </div>
+                  )}
+
+                  <button onClick={handleManualIngest} disabled={ingestStatus === 'adding'} className="bg-slate-900 text-white px-8 py-3 h-[42px] font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-md rounded-none whitespace-nowrap flex items-center justify-center self-end min-w-[150px]">
+                    {ingestStatus === 'adding' ? <Loader2 className="animate-spin" size={14}/> : (directPlacement ? 'Publish Directly' : 'Add to Queue')}
                   </button>
                 </div>
              </div>
@@ -331,6 +444,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
           </div>
         )}
 
+        {/* ... Rest of existing tabs (notices, staff, config) ... */}
         {activeTab === 'notices' && (
           <div className="space-y-8 animate-fadeIn">
             <div className="bg-slate-50 p-6 border border-slate-200 space-y-4 rounded-none">
@@ -582,3 +696,4 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
 };
 
 export default AdminPanel;
+    
