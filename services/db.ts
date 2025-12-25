@@ -1,3 +1,4 @@
+
 import { db } from '../firebase';
 import { 
   collection, doc, setDoc, deleteDoc, 
@@ -11,6 +12,8 @@ export const subscribeToNotices = (callback: (notices: Notice[]) => void) => {
   return onSnapshot(q, (snapshot) => {
     const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Notice));
     callback(data);
+  }, (error) => {
+    console.warn("Notice sync unavailable:", error.message);
   });
 };
 
@@ -30,6 +33,8 @@ export const subscribeToBanners = (callback: (banners: Banner[]) => void) => {
   return onSnapshot(collection(db, "banners"), (snapshot) => {
     const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Banner));
     callback(data);
+  }, (error) => {
+    console.warn("Banner sync unavailable:", error.message);
   });
 };
 
@@ -56,6 +61,8 @@ export const subscribeToTelegramFeed = (callback: (posts: TelegramPost[]) => voi
   return onSnapshot(q, (snapshot) => {
     const posts = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as TelegramPost));
     callback(posts);
+  }, (error) => {
+    console.warn("Feed sync unavailable:", error.message);
   });
 };
 
@@ -74,6 +81,10 @@ export const subscribeToCourses = (callback: (courses: Course[]) => void) => {
   return onSnapshot(q, (snapshot) => {
     const coursesData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Course));
     callback(coursesData);
+  }, (error) => {
+    console.warn("Course sync unavailable:", error.message);
+    // If offline and no cache, we might want to trigger a fallback, but callback([]) is risky.
+    // We let the UI show loading or empty state naturally.
   });
 };
 
@@ -99,6 +110,17 @@ export const subscribeToStaff = (callback: (staff: StaffMember[]) => void) => {
     };
     const others = staffData.filter(s => s.email !== primaryAdmin.email);
     callback([primaryAdmin, ...others]);
+  }, (error) => {
+    console.warn("Staff sync unavailable:", error.message);
+    // Fallback to just primary admin if DB fails
+    const primaryAdmin = { 
+      id: 's1', 
+      name: 'Primary Admin', 
+      email: 'r29878448@gmail.com', 
+      role: 'admin' as const, 
+      joinedAt: new Date().toLocaleDateString() 
+    };
+    callback([primaryAdmin]);
   });
 };
 
@@ -112,10 +134,14 @@ export const removeStaffFromDB = async (staffId: string) => {
 
 // --- SETTINGS ---
 export const getSiteSettings = async (): Promise<SiteSettings | null> => {
-  const docRef = doc(db, "settings", "config");
-  const docSnap = await getDoc(docRef);
-  if (docSnap.exists()) {
-    return docSnap.data() as SiteSettings;
+  try {
+    const docRef = doc(db, "settings", "config");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data() as SiteSettings;
+    }
+  } catch (error) {
+    console.warn("Settings fetch failed, using defaults");
   }
   return null;
 };

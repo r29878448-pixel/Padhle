@@ -1,5 +1,6 @@
+
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA6PnAaf-88DuVVY9oOdKLLTAEZ12Akq74",
@@ -12,4 +13,11 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+
+// Initialize Firestore with robust settings for unstable networks
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true, // Fixes "Could not reach backend" in restricted networks
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+});
