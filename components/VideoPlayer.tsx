@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Loader2, Zap, Settings, Monitor, Gauge, ShieldCheck, Maximize, AlertTriangle, ExternalLink
+  Loader2, Zap, Settings, Monitor, Gauge, ShieldCheck, Maximize, AlertTriangle, ExternalLink, Globe, PlayCircle
 } from 'lucide-react';
 
 interface VideoPlayerProps {
@@ -15,6 +15,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
   const [processedUrl, setProcessedUrl] = useState('');
   const [telegramPost, setTelegramPost] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [forceNative, setForceNative] = useState(false);
 
   useEffect(() => {
     setError(null);
@@ -30,12 +31,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
 
     const cleanUrl = videoUrl.trim();
     
-    // Helper to extract YouTube ID - relaxed length check
+    // If user toggles "Force Native", we try to play it with HTML5 <video> regardless of source
+    if (forceNative) {
+        setPlayerMode('direct');
+        setProcessedUrl(cleanUrl);
+        setIsLoading(false);
+        return;
+    }
+
+    // Helper to extract YouTube ID
     const getYoutubeId = (url: string) => {
-      // Matches: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID, etc.
       const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
       const match = url.match(regExp);
-      // Removed strict length check of 11 to support potentially unusual IDs, but typical IDs are 11 chars.
       return (match && match[2].length >= 10) ? match[2] : null;
     };
     
@@ -49,8 +56,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
     const ytId = getYoutubeId(cleanUrl);
     const vimeoId = getVimeoId(cleanUrl);
     
-    // 3. Direct Video File Check (.mp4, .webm, .ogg)
-    const isDirectVideo = /\.(mp4|webm|ogg|m4v)(\?.*)?$/i.test(cleanUrl);
+    // 3. Direct Video File Check (.mp4, .webm, .ogg, .mkv)
+    const isDirectVideo = /\.(mp4|webm|ogg|m4v|mkv)(\?.*)?$/i.test(cleanUrl);
 
     // 4. Telegram Post Check
     const tgRegex = /t\.me\/([a-zA-Z0-9_]+)\/([0-9]+)/;
@@ -58,7 +65,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
 
     if (ytId) {
       setPlayerMode('youtube');
-      // Added origin parameter for security/CORS compliance and allowFullScreen
       setProcessedUrl(`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&origin=${window.location.origin}`);
       setIsLoading(false);
     } else if (vimeoId) {
@@ -74,12 +80,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
       setTelegramPost(`${tgMatch[1]}/${tgMatch[2]}`);
       setIsLoading(false);
     } else {
-      // 5. Default to IFrame
+      // 5. Default to Generic/External Iframe (Rolex, Custom Embeds)
       setPlayerMode('iframe');
       setProcessedUrl(cleanUrl);
       setIsLoading(false);
     }
-  }, [videoUrl]);
+  }, [videoUrl, forceNative]);
 
   useEffect(() => {
     if (playerMode === 'telegram' && telegramPost) {
@@ -132,6 +138,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
               className="w-full h-full object-contain"
               controls
               autoPlay
+              controlsList="nodownload"
             />
           ) : playerMode === 'telegram' ? (
              <div className="w-full h-full flex items-center justify-center overflow-y-auto p-4 bg-slate-50">
@@ -141,10 +148,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
             <iframe 
               src={processedUrl}
               className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
               allowFullScreen
               title={title}
-              referrerPolicy="strict-origin-when-cross-origin"
+              referrerPolicy="no-referrer-when-downgrade"
+              sandbox="allow-forms allow-scripts allow-pointer-lock allow-same-origin allow-top-navigation allow-presentation"
             />
           )
         )}
@@ -154,7 +162,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
              <div className="flex justify-between items-start">
                 <h3 className="text-white font-black text-base tracking-tight truncate max-w-[80%] uppercase">{title}</h3>
                 <div className="bg-blue-600 px-3 py-1 text-white text-[8px] font-black uppercase tracking-widest border border-blue-500">
-                   Secure Link
+                   {forceNative ? 'Native Player' : 'Secure Stream'}
                 </div>
              </div>
           </div>
@@ -167,15 +175,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
                <Zap size={14} className="text-blue-600"/> High Speed
             </div>
             <div className="flex items-center gap-2 text-[9px] font-black text-slate-500 uppercase tracking-widest">
-               <Monitor size={14} className="text-blue-600"/> {playerMode === 'telegram' ? 'Secure Feed' : '1080p Stream'}
+               <Monitor size={14} className="text-blue-600"/> {playerMode === 'telegram' ? 'Secure Feed' : (playerMode === 'iframe' ? 'Web Embed' : '1080p Stream')}
             </div>
          </div>
          <div className="flex items-center gap-3">
             <button 
+                onClick={() => setForceNative(!forceNative)}
+                className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-all px-3 py-2 border ${forceNative ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-500 border-slate-200 hover:text-blue-600'}`}
+                title="Switch between Web Embed (Iframe) and Native Player"
+            >
+               {forceNative ? <PlayCircle size={12}/> : <Globe size={12}/>} {forceNative ? 'Native Mode' : 'Embed Mode'}
+            </button>
+            <button 
               onClick={() => window.open(videoUrl, '_blank')}
               className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 hover:text-blue-600 transition-all px-3 py-2 border border-slate-200 bg-white"
             >
-               Alternative Link <ExternalLink size={12}/>
+               Source <ExternalLink size={12}/>
             </button>
             <button className="p-2 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 transition-colors">
                <Maximize size={16} />

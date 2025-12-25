@@ -54,7 +54,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
   const [tempSettings, setTempSettings] = useState<SiteSettings>(siteSettings);
 
   // Ingest Form State
-  const [ingestForm, setIngestForm] = useState({ title: '', url: '', type: 'youtube' as 'youtube' | 'pdf' | 'video' | 'text' | 'telegram' });
+  const [ingestForm, setIngestForm] = useState({ title: '', url: '', type: 'youtube' as 'youtube' | 'pdf' | 'video' | 'text' | 'telegram' | 'embed' });
   const [ingestStatus, setIngestStatus] = useState<'idle' | 'adding'>('idle');
   
   // Direct Placement State
@@ -160,7 +160,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
         await addManualIngestItem({
           title: ingestForm.title,
           url: ingestForm.url,
-          type: ingestForm.type,
+          type: ingestForm.type as any,
           timestamp: Date.now(),
           isIngested: false
         });
@@ -344,8 +344,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                       <label className="text-[8px] font-black uppercase tracking-widest text-slate-400">Type</label>
                       <select value={ingestForm.type} onChange={e => setIngestForm({...ingestForm, type: e.target.value as any})} className="w-full px-4 py-3 bg-white border border-slate-300 font-black text-[10px] uppercase outline-none rounded-none">
                           <option value="youtube">YouTube</option>
+                          <option value="video">Direct Video (MP4)</option>
+                          <option value="embed">External Embed / Rolex</option>
                           <option value="pdf">PDF Doc</option>
-                          <option value="video">Raw Video</option>
                           <option value="telegram">Telegram</option>
                       </select>
                     </div>
@@ -696,4 +697,3 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
 };
 
 export default AdminPanel;
-    
