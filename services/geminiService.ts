@@ -5,7 +5,7 @@ import { TelegramPost } from "./db";
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-export const solveDoubt = async (question: string, context: string) => {
+export const solveDoubt = async (question: string, context: string, botName: string = "AI Tutor") => {
   const ai = getAI();
   try {
     const response = await ai.models.generateContent({
@@ -19,7 +19,7 @@ export const solveDoubt = async (question: string, context: string) => {
         }]
       }],
       config: {
-        systemInstruction: "You are 'PW Teacher', a friendly academic tutor. You speak in a natural mix of Hindi and English (Hinglish) like an expert Indian faculty member. Keep explanations very simple, clear, and encouraging. Use daily life analogies. For math/physics problems, show steps clearly. Use Markdown for formatting and math symbols.",
+        systemInstruction: `You are '${botName}', a friendly academic tutor. You speak in a natural mix of Hindi and English (Hinglish) like an expert Indian faculty member. Keep explanations very simple, clear, and encouraging. Use daily life analogies. For math/physics problems, show steps clearly. Use Markdown for formatting and math symbols. Never mention Gemini, Google, or your model name. Always refer to yourself as ${botName}.`,
         temperature: 0.7,
       },
     });

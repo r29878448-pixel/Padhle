@@ -65,8 +65,14 @@ export interface ChatMessage {
 }
 
 export interface SiteSettings {
+  appName: string;
+  botName: string;
   shortenerUrl: string;
   shortenerApiKey: string;
+  adminEmail: string;
+  adminPassword?: string;
+  paymentUpiId?: string;
+  supportEmail?: string;
 }
 
 export interface StaffMember {

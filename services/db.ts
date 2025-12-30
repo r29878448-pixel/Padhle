@@ -95,7 +95,6 @@ export const markLectureComplete = async (userId: string, courseId: string, lect
   });
 };
 
-// Fix: Import 'where' from 'firebase/firestore' to allow filtering progress by userId
 export const subscribeToUserProgress = (userId: string, callback: (progress: LectureProgress[]) => void) => {
   const q = query(collection(db, "progress"), where("userId", "==", userId));
   return onSnapshot(q, (snapshot) => {
@@ -112,16 +111,17 @@ export const subscribeToAllProgress = (callback: (progress: LectureProgress[]) =
 // --- STAFF ---
 export const subscribeToStaff = (callback: (staff: StaffMember[]) => void) => {
   return onSnapshot(collection(db, "staff"), (snapshot) => {
-    const staffData = snapshot.docs.map(doc => doc.data() as StaffMember);
-    const primaryAdmin = { 
-      id: 's1', name: 'Primary Admin', email: 'r29878448@gmail.com', role: 'admin' as const, joinedAt: '01/01/2024'
-    };
-    callback([primaryAdmin, ...staffData.filter(s => s.email !== primaryAdmin.email)]);
+    const staffData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as StaffMember));
+    callback(staffData);
   });
 };
 
 export const addStaffToDB = async (staff: StaffMember) => {
   await setDoc(doc(db, "staff", staff.id), staff);
+};
+
+export const deleteStaffFromDB = async (staffId: string) => {
+  await deleteDoc(doc(db, "staff", staffId));
 };
 
 // --- SETTINGS ---
