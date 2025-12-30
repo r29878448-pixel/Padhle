@@ -8,33 +8,39 @@ const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 export const solveDoubt = async (question: string, context: string) => {
   const ai = getAI();
   try {
-    // Fix: Use gemini-3-pro-preview for complex reasoning and academic tasks
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: `Context: You are a friendly, human-like tutor for Class 9 and 10 students. The student is watching a video titled "${context}".
+      model: 'gemini-3-flash-preview',
+      contents: [{
+        role: 'user',
+        parts: [{
+          text: `Context: You are a friendly, human-like tutor for students. The student is watching a lecture module titled "${context}".
       
-      Question: ${question}`,
+      Question: ${question}`
+        }]
+      }],
       config: {
-        systemInstruction: "You are a friendly, relatable academic tutor. You speak in Hinglish (a natural mix of Hindi and English) like a cool Indian teacher. Keep explanations clear, engaging, and easy to understand. Use analogies from daily life in India. Do not sound robotic. For numericals, solve step-by-step. Use markdown for formulas.",
+        systemInstruction: "You are 'PW Teacher', a friendly academic tutor. You speak in a natural mix of Hindi and English (Hinglish) like an expert Indian faculty member. Keep explanations very simple, clear, and encouraging. Use daily life analogies. For math/physics problems, show steps clearly. Use Markdown for formatting and math symbols.",
         temperature: 0.7,
       },
     });
     return response.text || "I'm sorry, I couldn't process that. Please try again.";
   } catch (error) {
     console.error("AI Doubt Solver Error:", error);
-    return "Error connecting to the AI teacher.";
+    return "The AI teacher is currently unavailable. Please try again in a moment.";
   }
 };
 
 export const verifyUTR = async (utr: string): Promise<boolean> => {
   const ai = getAI();
   try {
-    // Fix: Standard flash model is sufficient for basic verification tasks
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Verify if this looks like a valid Indian Banking UTR (Unified Transaction Reference) or UPI Transaction ID: "${utr}"`,
+      contents: [{
+        role: 'user',
+        parts: [{ text: `Verify if this looks like a valid Indian Banking UTR or UPI Transaction ID: "${utr}"` }]
+      }],
       config: {
-        systemInstruction: "You are a payment verification assistant. Analyze the string. Indian UTRs are usually 12 digits. UPI IDs vary but have a specific pattern. If it looks like a real transaction ID, return exactly 'VALID'. If it's clearly fake, gibberish, or too short, return 'INVALID'.",
+        systemInstruction: "Analyze the input. Indian UTRs/Transaction IDs are usually 12 digits. If it looks like a legitimate reference ID, return exactly 'VALID'. If it's fake, gibberish, or too short, return 'INVALID'.",
         responseMimeType: "text/plain",
       },
     });
@@ -55,32 +61,35 @@ export const classifyContent = async (post: TelegramPost, courses: Course[]) => 
   }));
 
   try {
-    // Fix: Use gemini-3-pro-preview for complex classification logic
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: `NEW INCOMING POST:
+      model: 'gemini-3-flash-preview',
+      contents: [{
+        role: 'user',
+        parts: [{
+          text: `NEW INCOMING POST:
       Title: "${post.title}"
       Type: "${post.type}"
       
-      PORTAL STRUCTURE: ${JSON.stringify(courseSchema)}`,
+      PORTAL STRUCTURE: ${JSON.stringify(courseSchema)}`
+        }]
+      }],
       config: {
-        systemInstruction: `You are the Lead Academic Organizer for Study Portal.
-        Assign this content to the correct Batch, Subject, and Chapter.
+        systemInstruction: `You are the Lead Academic Organizer.
+        Assign this content to the correct Batch, Subject, and Chapter based on the portal structure.
         
-        LOGIC RULES:
-        1. Batch Matching: Identify if it's for Class 9, 10, JEE, NEET, etc.
-        2. Subject Identification: Look for Physics, Chemistry, Maths, etc.
-        3. Chapter Extraction: Clean the title to get the Chapter name (e.g., from "L-02 | Atoms and Molecules", Chapter is "Atoms and Molecules").
-        4. No Fail: If Subject or Chapter is missing in the structure, provide the logical name so it can be created.
+        LOGIC:
+        1. Identify the Batch (JEE, NEET, Class 10, etc).
+        2. Identify the Subject (Physics, Chemistry, etc).
+        3. Extract the Chapter name from the title.
         
-        Output ONLY a JSON object. No backticks.`,
+        Output ONLY a JSON object.`,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            courseId: { type: Type.STRING, description: "Matched Course ID" },
-            subjectTitle: { type: Type.STRING, description: "Logical Subject Name" },
-            chapterTitle: { type: Type.STRING, description: "Logical Chapter Name" },
+            courseId: { type: Type.STRING },
+            subjectTitle: { type: Type.STRING },
+            chapterTitle: { type: Type.STRING },
             confidence: { type: Type.NUMBER }
           },
           required: ["courseId", "subjectTitle", "chapterTitle"]
@@ -88,7 +97,6 @@ export const classifyContent = async (post: TelegramPost, courses: Course[]) => 
       }
     });
 
-    // Fix: Simplified extraction using response.text property directly as per SDK guidelines
     const jsonStr = response.text?.trim() || "{}";
     return JSON.parse(jsonStr);
   } catch (error) {
