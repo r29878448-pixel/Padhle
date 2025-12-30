@@ -3,7 +3,7 @@ export interface Resource {
   id: string;
   title: string;
   url: string;
-  type: 'pdf' | 'link';
+  type: 'pdf' | 'link' | 'dpp';
 }
 
 export interface Lecture {
@@ -13,6 +13,7 @@ export interface Lecture {
   duration: string;
   description: string;
   resources: Resource[];
+  thumbnail?: string;
 }
 
 export interface Chapter {
@@ -25,6 +26,7 @@ export interface Subject {
   id: string;
   title: string;
   chapters: Chapter[];
+  color?: string;
 }
 
 export interface Course {
@@ -33,6 +35,7 @@ export interface Course {
   description: string;
   instructor: string;
   price: number;
+  originalPrice?: number;
   rating: number;
   students: number;
   image: string;
@@ -89,4 +92,21 @@ export interface LectureProgress {
   courseId: string;
   lectureId: string;
   completedAt: number;
+}
+
+export interface ScheduleEvent {
+  id: string;
+  title: string;
+  time: string;
+  subject: string;
+  type: 'Live' | 'Test' | 'Doubt';
+}
+
+export interface TestSeries {
+  id: string;
+  title: string;
+  subject: string;
+  duration: string;
+  questions: number;
+  status: 'Live' | 'Upcoming' | 'Completed';
 }

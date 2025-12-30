@@ -1,71 +1,67 @@
 
-import { Course } from './types';
+import { Course, ScheduleEvent, TestSeries } from './types';
 
 export const COURSES: Course[] = [
   {
-    id: 'batch-project-45-class-10',
-    title: 'Project 45: Class 10th Board Mastery',
-    description: 'A dedicated 45-day intensive crash course covering the entire Class 10 syllabus with top faculty, daily practice papers, and AI-driven doubt support.',
-    instructor: 'Team Study Portal',
-    price: 999,
+    id: 'lakshya-jee-2025',
+    title: 'Lakshya JEE 2025: Grade 12th PCM',
+    description: 'Comprehensive batch for JEE Mains & Advanced 2025. Includes live lectures, daily practice papers (DPP), and personalized doubt clearing sessions.',
+    instructor: 'PW Star Faculty',
+    price: 4500,
+    originalPrice: 12000,
     rating: 4.9,
-    students: 12500,
-    category: 'Class 10th',
-    image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=1000',
+    students: 45000,
+    category: 'JEE',
+    image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&q=80&w=1000',
     subjects: [
       {
-        id: 'sub-physics-10',
+        id: 'phy-12',
         title: 'Physics',
+        color: 'blue',
         chapters: [
           {
-            id: 'ch-light-10',
-            title: 'Light - Reflection and Refraction',
+            id: 'ch-electrostatics',
+            title: 'Electrostatics',
             lectures: [
               {
-                id: 'lec-light-01',
-                title: 'L-01 | Spherical Mirrors & Reflection Laws',
+                id: 'lec-e1',
+                title: 'L-01 | Coulomb\'s Law & Electric Field',
                 videoUrl: 'https://www.youtube.com/watch?v=7u3S-9o047M',
-                duration: '45:20',
-                description: 'Detailed explanation of concave and convex mirrors, sign conventions, and mirror formula derivation.',
+                duration: '1:15:20',
+                description: 'Fundamentals of electric charges and the principle of superposition.',
                 resources: [
-                  { id: 'res-pdf-01', title: 'Mirror Formula Notes', url: '#', type: 'pdf' },
-                  { id: 'res-pdf-02', title: 'DPP - 01 (Reflection)', url: '#', type: 'pdf' }
+                  { id: 'notes-e1', title: 'Class Notes - L01', url: '#', type: 'pdf' },
+                  { id: 'dpp-e1', title: 'DPP-01 (Daily Practice)', url: '#', type: 'dpp' }
                 ]
-              },
-              {
-                id: 'lec-light-02',
-                title: 'L-02 | Refraction through Glass Prism',
-                videoUrl: 'https://www.youtube.com/watch?v=XWp_OQz_f_M',
-                duration: '38:15',
-                description: 'Understanding Snell\'s Law, refractive index, and lateral displacement.',
-                resources: [
-                  { id: 'res-pdf-03', title: 'Refraction Class Notes', url: '#', type: 'pdf' }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'sub-chem-10',
-        title: 'Chemistry',
-        chapters: [
-          {
-            id: 'ch-chemical-reactions',
-            title: 'Chemical Reactions and Equations',
-            lectures: [
-              {
-                id: 'lec-chem-01',
-                title: 'L-01 | Types of Chemical Reactions',
-                videoUrl: 'https://www.youtube.com/watch?v=gS8N86-H58U',
-                duration: '52:10',
-                description: 'Combination, Decomposition, Displacement, and Redox reactions explained with experiments.',
-                resources: []
               }
             ]
           }
         ]
       }
     ]
+  },
+  {
+    id: 'udaan-class-10',
+    title: 'Udaan 2025: Class 10th Full Year',
+    description: 'Complete syllabus for Class 10th Boards with special focus on Science, Maths, and SST.',
+    instructor: 'Team Udaan',
+    price: 2100,
+    originalPrice: 5000,
+    rating: 4.8,
+    students: 85000,
+    category: 'Class 10th',
+    image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=1000',
+    subjects: []
   }
+];
+
+export const DAILY_SCHEDULE: ScheduleEvent[] = [
+  { id: '1', title: 'Live Lecture: Optics', time: '10:00 AM', subject: 'Physics', type: 'Live' },
+  { id: '2', title: 'Weekly Test: Periodic Table', time: '02:00 PM', subject: 'Chemistry', type: 'Test' },
+  { id: '3', title: 'Doubt Clearing Session', time: '05:30 PM', subject: 'Mathematics', type: 'Doubt' }
+];
+
+export const TEST_SERIES: TestSeries[] = [
+  { id: 't1', title: 'JEE Main Full Mock Test 01', subject: 'PCM', duration: '180 mins', questions: 90, status: 'Live' },
+  { id: 't2', title: 'Physics Chapter Test: Heat', subject: 'Physics', duration: '45 mins', questions: 25, status: 'Upcoming' }
 ];
