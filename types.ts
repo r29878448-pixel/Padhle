@@ -40,6 +40,7 @@ export interface Course {
   subjects: Subject[];
   shortLink?: string;
   accessCode?: string;
+  qrCode?: string;
 }
 
 export interface Notice {
@@ -72,4 +73,20 @@ export interface StaffMember {
   password?: string;
   role: 'manager' | 'admin';
   joinedAt: string;
+}
+
+export interface Student {
+  id: string;
+  name: string;
+  email: string;
+  joinedAt: number;
+  lastActive: number;
+  enrolledBatches: string[];
+}
+
+export interface LectureProgress {
+  userId: string;
+  courseId: string;
+  lectureId: string;
+  completedAt: number;
 }

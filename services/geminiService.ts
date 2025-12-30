@@ -8,8 +8,9 @@ const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 export const solveDoubt = async (question: string, context: string) => {
   const ai = getAI();
   try {
+    // Fix: Use gemini-3-pro-preview for complex reasoning and academic tasks
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: `Context: You are a friendly, human-like tutor for Class 9 and 10 students. The student is watching a video titled "${context}".
       
       Question: ${question}`,
@@ -25,6 +26,25 @@ export const solveDoubt = async (question: string, context: string) => {
   }
 };
 
+export const verifyUTR = async (utr: string): Promise<boolean> => {
+  const ai = getAI();
+  try {
+    // Fix: Standard flash model is sufficient for basic verification tasks
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Verify if this looks like a valid Indian Banking UTR (Unified Transaction Reference) or UPI Transaction ID: "${utr}"`,
+      config: {
+        systemInstruction: "You are a payment verification assistant. Analyze the string. Indian UTRs are usually 12 digits. UPI IDs vary but have a specific pattern. If it looks like a real transaction ID, return exactly 'VALID'. If it's clearly fake, gibberish, or too short, return 'INVALID'.",
+        responseMimeType: "text/plain",
+      },
+    });
+    return response.text?.trim().toUpperCase() === 'VALID';
+  } catch (error) {
+    console.error("AI UTR Verification Error:", error);
+    return false;
+  }
+};
+
 export const classifyContent = async (post: TelegramPost, courses: Course[]) => {
   const ai = getAI();
   
@@ -35,8 +55,9 @@ export const classifyContent = async (post: TelegramPost, courses: Course[]) => 
   }));
 
   try {
+    // Fix: Use gemini-3-pro-preview for complex classification logic
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: `NEW INCOMING POST:
       Title: "${post.title}"
       Type: "${post.type}"
@@ -67,9 +88,9 @@ export const classifyContent = async (post: TelegramPost, courses: Course[]) => 
       }
     });
 
-    const raw = response.text || "{}";
-    const cleanJson = raw.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleanJson);
+    // Fix: Simplified extraction using response.text property directly as per SDK guidelines
+    const jsonStr = response.text?.trim() || "{}";
+    return JSON.parse(jsonStr);
   } catch (error) {
     console.error("AI Classification Error:", error);
     return null;
