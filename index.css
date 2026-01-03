@@ -5,14 +5,14 @@
 
 :root {
   font-family: 'Inter', sans-serif;
-  background-color: #ffffff;
-  --primary: #1a73e8;
+  background-color: #f9fbff;
 }
 
 body {
   color: #0f172a;
   overflow-x: hidden;
-  background-color: #fcfdfe;
+  background-color: #f9fbff;
+  -webkit-tap-highlight-color: transparent;
 }
 
 ::-webkit-scrollbar {
@@ -36,15 +36,32 @@ body {
   display: none;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+/* PW Theme Specifics */
+input[type="range"] {
+  @apply cursor-pointer;
 }
 
-.animate-fadeIn {
-  animation: fadeIn 0.3s ease-out forwards;
+.pw-gradient-blue {
+  background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
 }
 
-.pw-shadow {
-  box-shadow: 0 4px 15px -2px rgba(26, 115, 232, 0.08);
+.pw-card-shadow {
+  box-shadow: 0 10px 30px -5px rgba(26, 115, 232, 0.05), 0 4px 10px -2px rgba(26, 115, 232, 0.02);
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Mobile Nav Optimization */
+@media (max-width: 768px) {
+  main {
+    padding-bottom: 120px;
+  }
 }
