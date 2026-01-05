@@ -6,6 +6,7 @@ import {
   Search, Clock, Radio, GraduationCap
 } from 'lucide-react';
 import { Course, Lecture, Notice, Banner, SiteSettings } from './types';
+import { COURSES } from './constants';
 import CustomVideoPlayer from './components/CustomVideoPlayer';
 import DoubtSolver from './components/DoubtSolver';
 import AuthModal from './components/AuthModal';
@@ -30,14 +31,15 @@ const BottomNavItem: React.FC<{icon: React.ReactNode, label: string, active: boo
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<'home' | 'course' | 'video' | 'admin' | 'profile' | 'planner' | 'tests'>('home');
-  const [courses, setCourses] = useState<Course[]>([]);
+  // Fallback to constants if DB is empty
+  const [courses, setCourses] = useState<Course[]>(COURSES);
   const [, setNotices] = useState<Notice[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null);
-  const [, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [user, setUser] = useState<{name: string, email: string, role: UserRole} | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,7 +56,12 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
-    const unsubCourses = subscribeToCourses(setCourses);
+    const unsubCourses = subscribeToCourses((dbCourses) => {
+      // Only override if DB has data
+      if (dbCourses.length > 0) {
+        setCourses(dbCourses);
+      }
+    });
     const unsubNotices = subscribeToNotices(setNotices);
     const unsubBanners = subscribeToBanners(setBanners);
 
@@ -150,7 +157,7 @@ const App: React.FC = () => {
            </div>
            <div className="flex items-center gap-4">
               <button className="p-3 bg-slate-50 rounded-xl text-slate-400 hover:text-blue-600 transition-all"><Bell size={20}/></button>
-              <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-3 bg-slate-900 text-white rounded-xl"><Menu size={20}/></button>
+              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden p-3 bg-slate-900 text-white rounded-xl"><Menu size={20}/></button>
            </div>
         </header>
 

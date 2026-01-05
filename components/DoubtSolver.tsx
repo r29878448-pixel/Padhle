@@ -38,7 +38,10 @@ const DoubtSolver: React.FC<DoubtSolverProps> = ({ currentContext }) => {
     setIsLoading(true);
 
     const aiResponse = await solveDoubt(input, currentContext, botName);
-    setMessages(prev => [...prev, { role: 'model', text: aiResponse || "Sorry, I encountered an error processing your doubt. Please try again." }]);
+    // Explicitly handle null/undefined to satisfy ChatMessage interface
+    const responseText = aiResponse ?? "I'm sorry, I couldn't process your question at the moment.";
+    
+    setMessages(prev => [...prev, { role: 'model', text: responseText }]);
     setIsLoading(false);
   };
 
