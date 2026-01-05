@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Hls from 'hls.js';
 import { 
   Play, Pause, Volume2, VolumeX, Maximize, Minimize, 
-  Loader2, Radio, SkipBack, SkipForward
+  Loader2, Radio, SkipBack, SkipForward, Settings
 } from 'lucide-react';
 
 interface CustomVideoPlayerProps {
@@ -34,7 +34,6 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
     setIsLoading(true);
     setError(null);
     
-    // Check if the source is an HLS/Live stream
     const isHls = videoUrl.includes('.m3u8') || videoUrl.includes('/live') || videoUrl.includes('playlist');
     setIsLive(isHls);
     
@@ -57,19 +56,19 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
           video.play().catch(() => setIsPlaying(false));
         });
         hls.on(Hls.Events.ERROR, (_, data) => {
-          if (data.fatal) setError("Live stream currently unavailable.");
+          if (data.fatal) setError("Stream currently unavailable.");
         });
         hlsRef.current = hls;
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = videoUrl;
         video.addEventListener('loadedmetadata', () => setIsLoading(false));
       } else {
-        setError("Your browser does not support HLS playback.");
+        setError("Browser mismatch for HLS.");
       }
     } else {
       video.src = videoUrl;
       video.addEventListener('loadeddata', () => setIsLoading(false));
-      video.addEventListener('error', () => setError("Failed to load video resource."));
+      video.addEventListener('error', () => setError("Failed to load session."));
     }
 
     return () => {
@@ -77,28 +76,13 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
     };
   }, [videoUrl]);
 
-  // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
-      
+      if (document.activeElement?.tagName === 'INPUT') return;
       switch(e.code) {
-        case 'Space':
-          e.preventDefault();
-          togglePlay();
-          break;
-        case 'KeyM':
-          setIsMuted(prev => !prev);
-          break;
-        case 'KeyF':
-          toggleFullScreen();
-          break;
-        case 'ArrowRight':
-          if (!isLive) skip(10);
-          break;
-        case 'ArrowLeft':
-          if (!isLive) skip(-10);
-          break;
+        case 'Space': e.preventDefault(); togglePlay(); break;
+        case 'KeyM': setIsMuted(prev => !prev); break;
+        case 'KeyF': toggleFullScreen(); break;
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -127,13 +111,6 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
       const time = (Number(e.target.value) / 100) * videoRef.current.duration;
       videoRef.current.currentTime = time;
       setProgress(Number(e.target.value));
-    }
-  };
-
-  const skip = (seconds: number) => {
-    if (videoRef.current && !isLive) {
-      videoRef.current.currentTime += seconds;
-      setShowControls(true);
     }
   };
 
@@ -166,83 +143,72 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
     <div 
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      className="relative w-full aspect-video bg-slate-950 group overflow-hidden rounded-[2.5rem] shadow-2xl border border-slate-900 select-none"
+      className="relative w-full aspect-video bg-black group overflow-hidden rounded-[2.5rem] shadow-2xl select-none"
     >
       <video 
         ref={videoRef}
         onClick={togglePlay}
         onTimeUpdate={handleProgress}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
         className="w-full h-full object-contain cursor-pointer"
         playsInline
         muted={isMuted}
       />
 
       {isLive && (
-        <div className="absolute top-8 left-8 z-40 flex items-center gap-3">
-           <div className="bg-red-600 text-white px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-2xl animate-pulse">
+        <div className="absolute top-6 left-6 z-40">
+           <div className="bg-red-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-2xl animate-pulse">
               <Radio size={14} strokeWidth={3} /> LIVE SESSION
-           </div>
-           <div className="bg-slate-900/60 backdrop-blur-md text-white/80 px-4 py-1.5 rounded-xl text-[9px] font-bold uppercase border border-white/10">
-              Low Latency Enabled
            </div>
         </div>
       )}
 
       {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-50 p-10 text-center">
-           <p className="text-white text-xl font-black uppercase tracking-tight">{error}</p>
-           <button onClick={() => window.location.reload()} className="mt-6 px-8 py-3 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-blue-500">Retry Stream</button>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-50 text-center p-10">
+           <p className="text-white text-lg font-black uppercase tracking-tight mb-6">{error}</p>
+           <button onClick={() => window.location.reload()} className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Retry Session</button>
         </div>
       )}
 
       {isLoading && !error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-sm z-50">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-md z-50">
           <Loader2 className="w-16 h-16 text-blue-500 animate-spin" strokeWidth={3} />
-          <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em] mt-6">Buffering Content...</p>
+          <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em] mt-8">Optimizing Stream...</p>
         </div>
       )}
 
       {!isPlaying && !isLoading && !error && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-          <div className="p-8 bg-blue-600/90 rounded-full text-white shadow-2xl scale-110 opacity-100 transition-all">
+          <div className="p-8 bg-blue-600/95 rounded-full text-white shadow-2xl scale-125 transition-all">
             <Play size={48} fill="currentColor" />
           </div>
         </div>
       )}
 
-      <div className={`absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/20 transition-opacity duration-500 z-30 ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      <div className={`absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-950/20 transition-opacity duration-500 z-30 ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         
         <div className="p-10 flex justify-between items-start">
-           <h2 className="text-white font-black text-lg uppercase italic tracking-tighter drop-shadow-md">{title}</h2>
+           <h2 className="text-white font-black text-lg uppercase italic tracking-tighter drop-shadow-lg">{title}</h2>
+           <button className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl text-white backdrop-blur-md border border-white/10"><Settings size={20}/></button>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 p-10 space-y-8">
-          
+        <div className="absolute bottom-0 left-0 right-0 p-10 space-y-6">
           {!isLive && (
-            <div className="relative group/progress px-2">
-              <input 
-                type="range" 
-                min="0" 
-                max="100" 
-                value={progress} 
-                onChange={seek}
-                className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer accent-blue-600 group-hover/progress:h-3 transition-all"
-              />
-            </div>
+            <input 
+              type="range" min="0" max="100" value={progress} onChange={seek}
+              className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer accent-blue-600"
+            />
           )}
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-10">
-              <button onClick={togglePlay} className="text-white hover:text-blue-500 transition-all active:scale-90">
+              <button onClick={togglePlay} className="text-white hover:text-blue-500 transition-all">
                 {isPlaying ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" />}
               </button>
               
               {!isLive && (
                 <div className="flex items-center gap-6">
-                  <button onClick={() => skip(-10)} className="text-white/60 hover:text-white transition-all"><SkipBack size={24}/></button>
-                  <button onClick={() => skip(10)} className="text-white/60 hover:text-white transition-all"><SkipForward size={24}/></button>
+                  <button onClick={() => {if(videoRef.current) videoRef.current.currentTime -= 10}} className="text-white/60 hover:text-white transition-all"><SkipBack size={24}/></button>
+                  <button onClick={() => {if(videoRef.current) videoRef.current.currentTime += 10}} className="text-white/60 hover:text-white transition-all"><SkipForward size={24}/></button>
                 </div>
               )}
 
@@ -254,21 +220,18 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
                    type="range" min="0" max="1" step="0.05" 
                    value={volume} 
                    onChange={(e) => {setVolume(Number(e.target.value)); if(videoRef.current) videoRef.current.volume = Number(e.target.value);}}
-                   className="w-0 group-hover/volume:w-24 transition-all accent-white h-1.5 cursor-pointer"
+                   className="w-0 group-hover/volume:w-24 transition-all accent-white h-1 cursor-pointer"
                  />
               </div>
             </div>
 
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-6">
               {!isLive && (
-                <button 
-                  onClick={handleSpeedChange} 
-                  className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest border border-white/10 transition-all active:scale-95 backdrop-blur-md"
-                >
-                  {playbackSpeed}x Speed
+                <button onClick={handleSpeedChange} className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10 transition-all backdrop-blur-md">
+                  {playbackSpeed}x
                 </button>
               )}
-              <button onClick={toggleFullScreen} className="text-white hover:text-blue-500 transition-all active:scale-90">
+              <button onClick={toggleFullScreen} className="text-white hover:text-blue-500 transition-all">
                 {isFullScreen ? <Minimize size={28}/> : <Maximize size={28}/>}
               </button>
             </div>
