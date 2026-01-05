@@ -5,7 +5,7 @@ export const COURSES: Course[] = [
   {
     id: 'project-45-class-10',
     title: 'Project 45: Class 10th Board Power Batch',
-    description: 'A 45-day intensive revision program designed to help Class 10 students ace their Board Exams with 95%+ scores.',
+    description: 'A 45-day intensive revision program designed to help Class 10 students ace their Board Exams with 95%+ scores. Includes live daily practice sessions.',
     instructor: 'PW Star Faculty',
     price: 999,
     originalPrice: 2499,
@@ -20,11 +20,19 @@ export const COURSES: Course[] = [
         chapters: [
           {
             id: 'p45-ch1',
-            title: 'Light - Reflection & Refraction',
+            title: 'Light & Optics',
             lectures: [
               {
+                id: 'p45-l-live',
+                title: 'LIVE | Numericals on Lens Formula',
+                videoUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+                duration: 'LIVE',
+                description: 'Join the live interactive session to solve complex lens numericals for boards.',
+                resources: []
+              },
+              {
                 id: 'p45-l1',
-                title: 'L-01 | Full Chapter One-Shot',
+                title: 'L-01 | Reflection & Refraction One-Shot',
                 videoUrl: 'https://www.youtube.com/watch?v=7u3S-9o047M',
                 duration: '2:15:00',
                 description: 'Complete revision of Light chapter for Board Exams.',
