@@ -2,59 +2,44 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, Trash2, X, 
-  Upload, LayoutDashboard, ChevronDown, ChevronUp, Layers, Folder, Inbox, Sparkles, Zap,
-  Loader2, Database, Settings as SettingsIcon, Bell, Megaphone,
-  Target, QrCode, RefreshCw, CheckCircle2, AlertCircle, Play, History, Users as UsersIcon, BarChart3, Search, Clock, Shield, Globe, Key, UserPlus
+  Upload, LayoutDashboard, Layers, Folder,
+  Loader2, Database, Globe, Search
 } from 'lucide-react';
-import { Course, Subject, Chapter, Lecture, StaffMember, SiteSettings, Notice, Student, LectureProgress } from '../types';
+import { Course, Subject, Chapter, Lecture, StaffMember, SiteSettings, Student } from '../types';
 import SmartScraper from './SmartScraper';
 import { 
   subscribeToStaff, 
   saveCourseToDB, 
   deleteCourseFromDB, 
-  subscribeToTelegramFeed, 
-  TelegramPost, 
   subscribeToNotices, 
-  addNoticeToDB, 
-  deleteNoticeFromDB,
-  addStaffToDB,
-  deleteStaffFromDB,
   saveSiteSettings,
-  addManualIngestItem,
-  subscribeToStudents,
-  subscribeToAllProgress
+  subscribeToStudents
 } from '../services/db';
 
 interface AdminPanelProps {
   userRole: 'student' | 'admin' | 'manager';
   courses: Course[];
-  setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
   onClose: () => void;
   siteSettings: SiteSettings;
   setSiteSettings: (settings: SiteSettings) => void;
 }
 
-const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, onClose, siteSettings, setSiteSettings }) => {
+const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, siteSettings, setSiteSettings }) => {
   const [activeTab, setActiveTab] = useState<'batches' | 'scraper' | 'staff' | 'notices' | 'config' | 'users'>('batches');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
-  const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
-  const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const qrInputRef = useRef<HTMLInputElement>(null);
 
-  const [staff, setStaff] = useState<StaffMember[]>([]);
-  const [notices, setNotices] = useState<Notice[]>([]);
-  const [newStaff, setNewStaff] = useState({ name: '', email: '', password: '', role: 'manager' as 'manager' | 'admin' });
+  const [, setStaff] = useState<StaffMember[]>([]);
+  const [, setNotices] = useState<any[]>([]);
   const [tempSettings, setTempSettings] = useState<SiteSettings>(siteSettings);
   
   const [students, setStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   const emptyBatch: Course = {
-    id: '', title: '', description: '', instructor: 'Academic Specialist', price: 0, rating: 5.0, students: 0, category: 'JEE/NEET', image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=1000', subjects: [], shortLink: '', accessCode: '', qrCode: ''
+    id: '', title: '', description: '', instructor: 'Academic Specialist', price: 0, rating: 5.0, students: 0, category: 'JEE/NEET', image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=1000', subjects: []
   };
 
   const [currentBatch, setCurrentBatch] = useState<Course>(emptyBatch);
@@ -98,12 +83,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
     }
   };
 
-  const handleAddStaff = async () => {
-    if (!newStaff.email || !newStaff.password) return;
-    await addStaffToDB({ ...newStaff, id: `staff-${Date.now()}`, joinedAt: new Date().toLocaleDateString() });
-    setNewStaff({ name: '', email: '', password: '', role: 'manager' });
-  };
-
   const filteredStudents = students.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.email.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
@@ -136,7 +115,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                {courses.map(course => (
                  <div key={course.id} className="bg-white border border-slate-100 rounded-[2rem] p-6 group hover:border-blue-500 transition-all shadow-sm">
-                    <div className="aspect-video mb-4 rounded-xl relative overflow-hidden"><img src={course.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" /></div>
+                    <div className="aspect-video mb-4 rounded-xl relative overflow-hidden"><img alt={course.title} src={course.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" /></div>
                     <h3 className="font-black text-slate-900 text-base mb-6 truncate uppercase tracking-tight">{course.title}</h3>
                     <div className="flex gap-2">
                       <button onClick={() => { setCurrentBatch(course); setIsModalOpen(true); }} className="flex-1 bg-slate-900 text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-blue-600 transition-all">Edit Curriculum</button>
@@ -201,7 +180,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, setCourses, 
                        <div className="bg-white p-8 border border-slate-200 rounded-[2.5rem] space-y-6 shadow-sm">
                           <h3 className="font-black text-slate-900 text-[11px] uppercase tracking-[0.2em] border-b border-slate-100 pb-3">Batch Branding</h3>
                           <div className="aspect-video bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center cursor-pointer overflow-hidden group" onClick={() => fileInputRef.current?.click()}>
-                             {currentBatch.image ? <img src={currentBatch.image} className="w-full h-full object-cover" /> : <div className="text-center p-6"><Upload size={32} className="text-slate-300 mx-auto mb-3"/><p className="text-[9px] font-black uppercase text-slate-400">Upload Banner</p></div>}
+                             {currentBatch.image ? <img alt="Preview" src={currentBatch.image} className="w-full h-full object-cover" /> : <div className="text-center p-6"><Upload size={32} className="text-slate-300 mx-auto mb-3"/><p className="text-[9px] font-black uppercase text-slate-400">Upload Banner</p></div>}
                              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onloadend = () => setCurrentBatch({...currentBatch, image: r.result as string}); r.readAsDataURL(f); } }} />
                           </div>
                           <div className="space-y-4">

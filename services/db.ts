@@ -2,7 +2,7 @@
 import { db } from '../firebase';
 import { 
   collection, doc, setDoc, deleteDoc, 
-  onSnapshot, getDocs, query, orderBy, limit, updateDoc, addDoc, getDoc, serverTimestamp, where 
+  onSnapshot, query, orderBy, limit, updateDoc, addDoc, getDoc, where 
 } from 'firebase/firestore';
 import { Course, StaffMember, SiteSettings, Notice, Banner, Student, LectureProgress } from '../types';
 

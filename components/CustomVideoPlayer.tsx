@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Hls from 'hls.js';
 import { 
-  Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings, 
-  RotateCcw, RotateCw, PlayCircle, Loader2, FastForward, Info, Monitor, Radio, SkipBack, SkipForward
+  Play, Pause, Volume2, VolumeX, Maximize, Minimize, 
+  Loader2, Radio, SkipBack, SkipForward
 } from 'lucide-react';
 
 interface CustomVideoPlayerProps {
@@ -67,7 +67,6 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
         setError("Your browser does not support HLS playback.");
       }
     } else {
-      // Standard video or YouTube (YouTube handled via iframe usually, but this is a native player)
       video.src = videoUrl;
       video.addEventListener('loadeddata', () => setIsLoading(false));
       video.addEventListener('error', () => setError("Failed to load video resource."));
@@ -169,7 +168,6 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
       onMouseMove={handleMouseMove}
       className="relative w-full aspect-video bg-slate-950 group overflow-hidden rounded-[2.5rem] shadow-2xl border border-slate-900 select-none"
     >
-      {/* Native Video Element */}
       <video 
         ref={videoRef}
         onClick={togglePlay}
@@ -181,7 +179,6 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
         muted={isMuted}
       />
 
-      {/* LIVE Indicator Overlay */}
       {isLive && (
         <div className="absolute top-8 left-8 z-40 flex items-center gap-3">
            <div className="bg-red-600 text-white px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-2xl animate-pulse">
@@ -193,27 +190,20 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
         </div>
       )}
 
-      {/* Error State */}
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-50 p-10 text-center">
-           <Info className="text-amber-500 mb-4" size={48} />
            <p className="text-white text-xl font-black uppercase tracking-tight">{error}</p>
            <button onClick={() => window.location.reload()} className="mt-6 px-8 py-3 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-blue-500">Retry Stream</button>
         </div>
       )}
 
-      {/* Loading State */}
       {isLoading && !error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-sm z-50">
-          <div className="relative">
-            <Loader2 className="w-16 h-16 text-blue-500 animate-spin" strokeWidth={3} />
-            <PlayCircle className="absolute inset-0 m-auto text-blue-500/30" size={32} />
-          </div>
+          <Loader2 className="w-16 h-16 text-blue-500 animate-spin" strokeWidth={3} />
           <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em] mt-6">Buffering Content...</p>
         </div>
       )}
 
-      {/* Big Play Button (Visible on Pause) */}
       {!isPlaying && !isLoading && !error && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <div className="p-8 bg-blue-600/90 rounded-full text-white shadow-2xl scale-110 opacity-100 transition-all">
@@ -222,19 +212,14 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
         </div>
       )}
 
-      {/* Overlay UI Controls */}
       <div className={`absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/20 transition-opacity duration-500 z-30 ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         
-        {/* Top Title Bar */}
         <div className="p-10 flex justify-between items-start">
            <h2 className="text-white font-black text-lg uppercase italic tracking-tighter drop-shadow-md">{title}</h2>
-           <button className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-white transition-all backdrop-blur-md border border-white/5"><Settings size={20}/></button>
         </div>
 
-        {/* Bottom Control Bar */}
         <div className="absolute bottom-0 left-0 right-0 p-10 space-y-8">
           
-          {/* Progress Slider (Hidden for LIVE) */}
           {!isLive && (
             <div className="relative group/progress px-2">
               <input 
@@ -245,9 +230,6 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
                 onChange={seek}
                 className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer accent-blue-600 group-hover/progress:h-3 transition-all"
               />
-              <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[9px] font-bold px-3 py-1.5 rounded-lg opacity-0 group-hover/progress:opacity-100 transition-opacity shadow-xl border border-white/10 pointer-events-none">
-                 Seek Session
-              </div>
             </div>
           )}
 
@@ -275,14 +257,6 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
                    className="w-0 group-hover/volume:w-24 transition-all accent-white h-1.5 cursor-pointer"
                  />
               </div>
-
-              {!isLive && (
-                <span className="text-white/50 text-[11px] font-black uppercase tracking-[0.2em] hidden md:block border-l border-white/10 pl-10">
-                  {videoRef.current ? Math.floor(videoRef.current.currentTime / 60) + ":" + Math.floor(videoRef.current.currentTime % 60).toString().padStart(2, '0') : "0:00"} 
-                  <span className="mx-2 text-white/20">/</span>
-                  {videoRef.current && isFinite(videoRef.current.duration) ? Math.floor(videoRef.current.duration / 60) + ":" + Math.floor(videoRef.current.duration % 60).toString().padStart(2, '0') : "0:00"}
-                </span>
-              )}
             </div>
 
             <div className="flex items-center gap-8">

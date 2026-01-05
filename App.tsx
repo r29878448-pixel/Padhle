@@ -2,12 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Home, BookOpen, User as UserIcon, 
-  Menu, LogOut,
-  Settings, ChevronRight, FileText, Download, Loader2, ExternalLink, Layers, Folder, Zap, Play, Bell, Sparkles, ChevronLeft,
-  ArrowRight, Database, Link as LinkIcon, CheckCircle2, Lock, Target, BarChart3, Calendar, Trophy, Search, Clock, RefreshCw, Radio, GraduationCap
+  Menu, ChevronRight, Loader2, Layers, Folder, Play, Bell, ChevronLeft,
+  Search, Clock, Radio, GraduationCap
 } from 'lucide-react';
-import { Course, Lecture, Notice, Banner, LectureProgress, SiteSettings } from './types';
-import { DAILY_SCHEDULE, TEST_SERIES } from './constants';
+import { Course, Lecture, Notice, Banner, SiteSettings } from './types';
 import CustomVideoPlayer from './components/CustomVideoPlayer';
 import DoubtSolver from './components/DoubtSolver';
 import AuthModal from './components/AuthModal';
@@ -18,9 +16,7 @@ import {
   subscribeToCourses, 
   getSiteSettings, 
   subscribeToNotices, 
-  subscribeToBanners,
-  subscribeToUserProgress,
-  markLectureComplete
+  subscribeToBanners
 } from './services/db';
 
 type UserRole = 'student' | 'admin' | 'manager';
@@ -35,20 +31,18 @@ const BottomNavItem: React.FC<{icon: React.ReactNode, label: string, active: boo
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<'home' | 'course' | 'video' | 'admin' | 'profile' | 'planner' | 'tests'>('home');
   const [courses, setCourses] = useState<Course[]>([]);
-  const [notices, setNotices] = useState<Notice[]>([]);
+  const [, setNotices] = useState<Notice[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [, setIsSidebarOpen] = useState(false);
   const [user, setUser] = useState<{name: string, email: string, role: UserRole} | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [lectureTab, setLectureTab] = useState<'ai' | 'notes'>('ai');
   
   const [enrolledBatches, setEnrolledBatches] = useState<string[]>([]);
-  const [userProgress, setUserProgress] = useState<LectureProgress[]>([]);
   const [paymentCourse, setPaymentCourse] = useState<Course | null>(null);
 
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({ 
@@ -74,13 +68,6 @@ const App: React.FC = () => {
 
     return () => { unsubCourses(); unsubNotices(); unsubBanners(); };
   }, []);
-
-  useEffect(() => {
-    if (user?.role === 'student') {
-      const unsubProgress = subscribeToUserProgress(user.email.replace(/\./g, '_'), setUserProgress);
-      return () => unsubProgress();
-    }
-  }, [user]);
 
   const handleCourseClick = (course: Course) => {
     if (user?.role === 'admin' || user?.role === 'manager' || !course.price || enrolledBatches.includes(course.id)) {
@@ -140,12 +127,9 @@ const App: React.FC = () => {
           <button onClick={() => setActiveView('course')} className={`w-full flex items-center gap-4 px-10 py-5 font-black text-[10px] uppercase tracking-[0.2em] transition-all ${activeView === 'course' ? 'text-blue-600 bg-blue-50/50 border-r-4 border-blue-600' : 'text-slate-400 hover:text-slate-900'}`}>
             <BookOpen size={18}/> My Learning
           </button>
-          <button onClick={() => setActiveView('tests')} className={`w-full flex items-center gap-4 px-10 py-5 font-black text-[10px] uppercase tracking-[0.2em] transition-all ${activeView === 'tests' ? 'text-blue-600 bg-blue-50/50 border-r-4 border-blue-600' : 'text-slate-400 hover:text-slate-900'}`}>
-            <Trophy size={18}/> Mock Tests
-          </button>
           {(user?.role === 'admin' || user?.role === 'manager') && (
             <button onClick={() => setActiveView('admin')} className={`w-full flex items-center gap-4 px-10 py-5 font-black text-[10px] uppercase tracking-[0.2em] transition-all ${activeView === 'admin' ? 'text-blue-600 bg-blue-50/50 border-r-4 border-blue-600' : 'text-slate-400 hover:text-slate-900'}`}>
-              <Zap size={18}/> Sync Hub
+              <Layers size={18}/> Sync Hub
             </button>
           )}
         </nav>
@@ -175,7 +159,7 @@ const App: React.FC = () => {
               <div className="space-y-12 animate-fadeIn">
                  {/* Segment Hero */}
                  <div className="relative rounded-[3rem] overflow-hidden shadow-2xl bg-slate-900 h-72 md:h-96 group">
-                    <img src={banners[0]?.imageUrl || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=1200"} className="w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-1000" />
+                    <img alt="Banner" src={banners[0]?.imageUrl || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=1200"} className="w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-1000" />
                     <div className="absolute inset-0 flex flex-col justify-center px-10 md:px-24">
                        <span className="text-blue-400 font-black text-[10px] uppercase tracking-[0.4em] mb-4">Academic Year 2024-25</span>
                        <h1 className="text-4xl md:text-6xl font-black text-white leading-tight uppercase italic tracking-tighter">Success in<br/><span className="text-blue-500 underline decoration-white/30 underline-offset-8">Boards & Competitive.</span></h1>
@@ -215,7 +199,7 @@ const App: React.FC = () => {
                             className="bg-white rounded-[3rem] border border-slate-100 hover:shadow-2xl transition-all cursor-pointer overflow-hidden group flex flex-col hover:-translate-y-2"
                           >
                              <div className="aspect-[16/10] overflow-hidden relative">
-                                <img src={course.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                                <img alt={course.title} src={course.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                                 <div className="absolute top-6 left-6 px-4 py-2 bg-white/95 backdrop-blur-md rounded-2xl text-[9px] font-black uppercase tracking-widest text-slate-900 border border-white/20 shadow-lg">
                                    {course.category}
                                 </div>
@@ -257,7 +241,7 @@ const App: React.FC = () => {
                           <div className="absolute top-0 right-0 p-8 opacity-[0.05] pointer-events-none">
                              <GraduationCap size={120} />
                           </div>
-                          <img src={selectedCourse.image} className="w-full rounded-[2.5rem] mb-8 shadow-2xl" />
+                          <img alt={selectedCourse.title} src={selectedCourse.image} className="w-full rounded-[2.5rem] mb-8 shadow-2xl" />
                           <h2 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter leading-tight mb-4">{selectedCourse.title}</h2>
                           <div className="flex items-center justify-center gap-3 mb-10">
                              <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase">{selectedCourse.category}</span>
@@ -294,7 +278,7 @@ const App: React.FC = () => {
                                                <div className="flex items-center gap-8">
                                                   <div className="w-28 h-18 bg-white rounded-[1.5rem] flex items-center justify-center text-slate-300 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm relative overflow-hidden shrink-0">
                                                      {lecture.thumbnail ? (
-                                                        <img src={lecture.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt="" />
+                                                        <img alt={lecture.title} src={lecture.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                                                      ) : (
                                                         <Play size={28} fill="currentColor"/>
                                                      )}
@@ -322,12 +306,6 @@ const App: React.FC = () => {
                              </div>
                           </div>
                        ))}
-                       {selectedCourse.subjects.length === 0 && (
-                          <div className="p-32 text-center bg-white border border-slate-100 rounded-[4rem] shadow-inner">
-                             <Database size={64} className="text-slate-100 mx-auto mb-6" />
-                             <p className="text-slate-400 font-black uppercase tracking-[0.3em] text-[11px]">Syncing Module Assets...</p>
-                          </div>
-                       )}
                     </div>
                  </div>
               </div>
@@ -365,7 +343,6 @@ const App: React.FC = () => {
               <AdminPanel 
                 userRole={user.role} 
                 courses={courses} 
-                setCourses={setCourses} 
                 onClose={() => setActiveView('home')} 
                 siteSettings={siteSettings} 
                 setSiteSettings={setSiteSettings} 
@@ -378,7 +355,6 @@ const App: React.FC = () => {
         <nav className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-white border-t border-slate-100 flex items-center px-4 z-50 pb-2">
            <BottomNavItem icon={<Home size={22}/>} label="Home" active={activeView === 'home'} onClick={() => setActiveView('home')}/>
            <BottomNavItem icon={<BookOpen size={22}/>} label="Learning" active={activeView === 'course'} onClick={() => setActiveView('course')}/>
-           <BottomNavItem icon={<Trophy size={22}/>} label="Tests" active={activeView === 'tests'} onClick={() => setActiveView('tests')}/>
            <BottomNavItem icon={<UserIcon size={22}/>} label="Account" active={activeView === 'profile'} onClick={() => setActiveView('profile')}/>
         </nav>
       </div>

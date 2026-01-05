@@ -38,7 +38,7 @@ const DoubtSolver: React.FC<DoubtSolverProps> = ({ currentContext }) => {
     setIsLoading(true);
 
     const aiResponse = await solveDoubt(input, currentContext, botName);
-    setMessages(prev => [...prev, { role: 'model', text: aiResponse }]);
+    setMessages(prev => [...prev, { role: 'model', text: aiResponse || "Sorry, I encountered an error processing your doubt. Please try again." }]);
     setIsLoading(false);
   };
 
