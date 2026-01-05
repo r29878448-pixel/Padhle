@@ -70,7 +70,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, siteSettings
     try {
       const batchToSave = { ...currentBatch };
       if (!batchToSave.id) {
-        batchToSave.id = batchToSave.title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
+        batchToSave.id = (batchToSave.title || 'Untitled').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
       }
       await saveCourseToDB(batchToSave);
       setSaveStatus('success');
@@ -83,7 +83,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, siteSettings
     }
   };
 
-  const filteredStudents = students.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.email.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredStudents = students.filter(s => (s.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (s.email || '').toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12 text-left">
@@ -116,7 +116,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, siteSettings
                {courses.map(course => (
                  <div key={course.id} className="bg-white border border-slate-100 rounded-[2rem] p-6 group hover:border-blue-500 transition-all shadow-sm">
                     <div className="aspect-video mb-4 rounded-xl relative overflow-hidden"><img alt={course.title} src={course.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" /></div>
-                    <h3 className="font-black text-slate-900 text-base mb-6 truncate uppercase tracking-tight">{course.title}</h3>
+                    <h3 className="font-black text-slate-900 text-base mb-6 truncate uppercase tracking-tight">{course.title || 'Untitled Batch'}</h3>
                     <div className="flex gap-2">
                       <button onClick={() => { setCurrentBatch(course); setIsModalOpen(true); }} className="flex-1 bg-slate-900 text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-blue-600 transition-all">Edit Curriculum</button>
                       <button onClick={() => deleteCourseFromDB(course.id)} className="p-3 bg-red-50 text-red-400 hover:text-red-600 rounded-xl transition-all"><Trash2 size={18}/></button>
@@ -155,9 +155,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, siteSettings
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                  {filteredStudents.map(student => (
                     <div key={student.id} className="p-6 bg-white border border-slate-100 rounded-3xl flex items-center gap-5">
-                       <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black">{student.name.charAt(0)}</div>
+                       <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black">{student.name?.charAt(0) || '?'}</div>
                        <div>
-                          <p className="font-black text-slate-900 uppercase tracking-tight truncate max-w-[150px]">{student.name}</p>
+                          <p className="font-black text-slate-900 uppercase tracking-tight truncate max-w-[150px]">{student.name || 'Unknown Student'}</p>
                           <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{student.email}</p>
                        </div>
                     </div>
