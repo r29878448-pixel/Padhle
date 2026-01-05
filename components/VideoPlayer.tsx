@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Hls from 'hls.js';
 import { 
-  Loader2, Zap, Monitor, AlertTriangle, ExternalLink, Globe, PlayCircle, SkipForward, Film, LayoutTemplate, ShieldCheck
+  Loader2, Monitor, AlertTriangle, ExternalLink, ShieldCheck
 } from 'lucide-react';
 
 interface VideoPlayerProps {
@@ -55,7 +55,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
           return urlObj.searchParams.get('v');
         }
       } catch (e) {
-        // Fallback to regex if URL construction fails
         const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|live\/|shorts\/)([^#&?]*).*/;
         const match = url.match(regExp);
         return (match && match[2].length >= 10) ? match[2] : null;

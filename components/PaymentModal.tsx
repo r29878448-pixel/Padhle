@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, QrCode, ClipboardCheck, Loader2, ShieldCheck, AlertCircle, Timer, Zap } from 'lucide-react';
+import { X, QrCode, Loader2, ShieldCheck, Timer, Zap } from 'lucide-react';
 import { verifyUTR } from '../services/geminiService';
 import { Course } from '../types';
 
@@ -112,7 +112,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, course, on
              <div className="w-8 h-8 bg-emerald-50 text-emerald-600 flex items-center justify-center">
                 <Zap size={14} fill="currentColor" />
              </div>
-             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">Secured via Study Portal AI Gateway. Fake UTRs may lead to permanent account suspension.</p>
+             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">Secured via Delta AI Gateway. Fake UTRs lead to account suspension.</p>
           </div>
         </div>
       </div>

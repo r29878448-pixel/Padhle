@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Loader2, RefreshCw, FileCode, Save, Zap, Database, ArrowRight, CheckCircle2, AlertCircle, Play, Radio, Clock, User as UserIcon, GraduationCap } from 'lucide-react';
+import { Search, Loader2, RefreshCw, FileCode, Save, Zap, Database, CheckCircle2, AlertCircle, Play, User as UserIcon } from 'lucide-react';
 import { parseScrapedContent } from '../services/geminiService';
 import { saveCourseToDB } from '../services/db';
 import { Course } from '../types';
@@ -25,7 +25,6 @@ const SmartScraper: React.FC = () => {
   const [isScraping, setIsScraping] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [result, setResult] = useState<ScrapedContent | null>(null);
-  const [step, setStep] = useState<number>(0); 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -34,7 +33,6 @@ const SmartScraper: React.FC = () => {
     setIsScraping(true);
     setError('');
     setSuccess('');
-    setStep(1);
     
     try {
       let html = sourceHtml;
@@ -46,16 +44,13 @@ const SmartScraper: React.FC = () => {
         html = await response.text();
       }
 
-      setStep(2);
       const data = await parseScrapedContent(html!, url || "Direct Ingest");
       
-      if (!data || !data.title) throw new Error("Could not parse structure. Please ensure you are pasting the correct source HTML.");
+      if (!data || !data.title) throw new Error("Could not parse structure.");
       
       setResult(data);
-      setStep(3);
     } catch (e: any) {
       setError(e.message || "Failed to extract curriculum.");
-      setStep(0);
     } finally {
       setIsScraping(false);
     }
@@ -100,7 +95,6 @@ const SmartScraper: React.FC = () => {
       setSuccess("Curriculum integrated successfully!");
       setResult(null);
       setUrl('');
-      setStep(0);
     } catch (e) {
       setError("Failed to sync with cloud database.");
     } finally {
@@ -117,7 +111,7 @@ const SmartScraper: React.FC = () => {
               <Zap className="text-blue-600 fill-blue-600" size={32} /> Delta Sync Engine
             </h3>
             <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-2">
-              Cross-Platform Content Extraction Pro
+              Sync External Batches Seamlessly
             </p>
           </div>
           <RefreshCw className={`text-blue-500 ${isScraping ? 'animate-spin' : ''}`} size={32} />
@@ -140,21 +134,15 @@ const SmartScraper: React.FC = () => {
               className="bg-slate-900 text-white px-10 py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
             >
               {isScraping ? <Loader2 className="animate-spin" size={20}/> : <RefreshCw size={20}/>}
-              Automate Extract
+              Start Automate
             </button>
-          </div>
-
-          <div className="relative py-4 flex items-center">
-            <div className="flex-1 border-t border-slate-100"></div>
-            <span className="px-4 text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Direct Source Ingest</span>
-            <div className="flex-1 border-t border-slate-100"></div>
           </div>
 
           <div className="space-y-4">
             <textarea 
               value={manualHtml}
               onChange={(e) => setManualHtml(e.target.value)}
-              placeholder="Paste page source (HTML) for full deep-crawl..."
+              placeholder="Paste page source (HTML) for deep-crawl..."
               className="w-full h-32 p-6 bg-slate-50 border border-slate-100 rounded-2xl font-mono text-[10px] outline-none focus:border-blue-500 transition-all resize-none shadow-inner"
             />
             <button 
@@ -162,7 +150,7 @@ const SmartScraper: React.FC = () => {
               disabled={isScraping || !manualHtml}
               className="w-full py-4 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-50 hover:text-blue-600 transition-all flex items-center justify-center gap-2"
             >
-              <FileCode size={18}/> Process HTML Source
+              <FileCode size={18}/> Process Source
             </button>
           </div>
         </div>
@@ -201,7 +189,7 @@ const SmartScraper: React.FC = () => {
                   className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-3 shadow-xl"
                 >
                   {isSaving ? <Loader2 className="animate-spin" size={20}/> : <Save size={20}/>}
-                  Push to Library
+                  Deploy Batch
                 </button>
               </div>
             </div>
@@ -210,7 +198,7 @@ const SmartScraper: React.FC = () => {
           <div className="lg:col-span-7">
             <div className="bg-white border border-slate-100 rounded-[2.5rem] p-10 shadow-sm">
               <h4 className="font-black text-slate-900 uppercase text-[11px] mb-8 flex items-center gap-4 tracking-widest">
-                <Database size={20} className="text-blue-600"/> Detected Modules
+                <Database size={20} className="text-blue-600"/> Detected Content
               </h4>
               <div className="space-y-8">
                 {result.subjects.map((sub, sIdx) => (
@@ -224,7 +212,6 @@ const SmartScraper: React.FC = () => {
                           </div>
                           <div className="min-w-0">
                             <p className="text-[10px] font-black text-slate-800 uppercase tracking-tight line-clamp-1">{lec.title}</p>
-                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">{lec.duration}</p>
                           </div>
                         </div>
                       ))}

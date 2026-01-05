@@ -5,7 +5,7 @@ import {
   Upload, LayoutDashboard, Layers, Folder,
   Loader2, Database, Globe, Search
 } from 'lucide-react';
-import { Course, Subject, Chapter, Lecture, StaffMember, SiteSettings, Student } from '../types';
+import { Course, Chapter, Lecture, StaffMember, SiteSettings, Student } from '../types';
 import SmartScraper from './SmartScraper';
 import { 
   subscribeToStaff, 
