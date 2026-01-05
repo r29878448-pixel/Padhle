@@ -15,17 +15,17 @@ body {
   scroll-behavior: smooth;
 }
 
-/* Delta Premium Components */
+/* Delta Study UI System */
 .delta-card {
-  @apply bg-white border border-slate-100 rounded-[2.5rem] transition-all duration-500 hover:shadow-[0_40px_80px_-15px_rgba(37,99,235,0.08)] hover:-translate-y-1;
+  @apply bg-white border border-slate-100 rounded-[3rem] transition-all duration-700 hover:shadow-[0_40px_80px_-15px_rgba(37,99,235,0.08)] hover:-translate-y-2;
 }
 
 .delta-glass {
-  @apply bg-white/80 backdrop-blur-2xl border-b border-slate-100 sticky top-0 z-50;
+  @apply bg-white/80 backdrop-blur-2xl border-b border-slate-100 sticky top-0 z-[100];
 }
 
-.delta-btn-primary {
-  @apply bg-blue-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all active:scale-95;
+.delta-btn {
+  @apply rounded-[1.5rem] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -38,16 +38,19 @@ body {
   100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 }
 
-.live-badge {
-  @apply bg-red-600 text-white px-3 py-1 rounded-lg font-black text-[8px] uppercase tracking-tighter;
+.live-pulse {
   animation: pulse-live 2s infinite;
 }
 
-@keyframes delta-reveal {
-  from { opacity: 0; transform: translateY(30px); }
+@keyframes delta-entry {
+  from { opacity: 0; transform: translateY(40px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-delta {
-  animation: delta-reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: delta-entry 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.segment-btn {
+  @apply px-10 py-5 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.2em] transition-all whitespace-nowrap border-2;
 }
