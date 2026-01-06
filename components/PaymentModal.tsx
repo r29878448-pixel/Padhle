@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { X, QrCode, Loader2, ShieldCheck, Timer, Zap } from 'lucide-react';
+import { X, QrCode, Loader2, ShieldCheck, Zap, Clock } from 'lucide-react';
 import { verifyUTR } from '../services/geminiService';
 import { Course } from '../types';
 
@@ -43,54 +42,54 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, course, on
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-      <div className="bg-white w-full max-w-md rounded-none shadow-2xl overflow-hidden relative border border-slate-200">
-        <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-900 transition-colors">
-          <X size={24} />
+    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-study">
+      <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden relative border border-slate-100">
+        <button onClick={onClose} className="absolute top-8 right-8 text-slate-300 hover:text-slate-900 transition-colors">
+          <X size={28} />
         </button>
 
-        <div className="p-10">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Batch Enrollment</h2>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Course: {course.title}</p>
+        <div className="p-12">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter italic">Batch Enrollment</h2>
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-2 truncate">License: {course.title}</p>
           </div>
 
           {status === 'fallback' ? (
-            <div className="space-y-6 text-center animate-fadeIn py-8">
-              <div className="w-16 h-16 bg-amber-50 text-amber-500 flex items-center justify-center mx-auto border border-amber-200 rounded-none">
-                <Timer size={32} className="animate-pulse" />
+            <div className="space-y-8 text-center animate-study py-10">
+              <div className="w-20 h-20 bg-amber-50 text-amber-500 flex items-center justify-center mx-auto border border-amber-100 rounded-[2rem]">
+                <Clock size={40} className="animate-pulse" />
               </div>
               <div>
-                <h3 className="text-lg font-black text-slate-900 uppercase">Manual Verification</h3>
-                <p className="text-xs text-slate-500 font-medium mt-2 leading-relaxed">The AI couldn't verify this UTR instantly. Access will be granted automatically after a quick manual bypass.</p>
+                <h3 className="text-xl font-black text-slate-900 uppercase italic">Manual Bypass</h3>
+                <p className="text-xs text-slate-500 font-medium mt-4 leading-relaxed">System is validating UTR via alternate nodes. Your access will be live in a few seconds.</p>
               </div>
-              <div className="text-4xl font-black text-blue-600">00:{timeLeft.toString().padStart(2, '0')}</div>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Please do not close this window</p>
+              <div className="text-5xl font-black text-blue-600 tabular-nums">00:{timeLeft.toString().padStart(2, '0')}</div>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">Optimizing Enrollment Gateway</p>
             </div>
           ) : (
             <>
-              <div className="bg-slate-50 p-6 flex flex-col items-center border border-slate-200 mb-8">
+              <div className="bg-slate-50 p-8 flex flex-col items-center border border-slate-100 mb-10 rounded-[2.5rem] shadow-inner">
                 {course.qrCode ? (
-                  <img src={course.qrCode} className="w-48 h-48 object-contain mb-4 border border-white" alt="Payment QR" />
+                  <img src={course.qrCode} className="w-56 h-56 object-contain mb-6 border-4 border-white shadow-xl rounded-2xl" alt="QR" />
                 ) : (
-                  <div className="w-48 h-48 bg-slate-200 flex items-center justify-center mb-4">
-                    <QrCode size={48} className="text-slate-400" />
+                  <div className="w-56 h-56 bg-white flex items-center justify-center mb-6 shadow-xl rounded-2xl border border-slate-100">
+                    <QrCode size={64} className="text-slate-100" />
                   </div>
                 )}
                 <div className="text-center">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount to Pay</p>
-                  <p className="text-3xl font-black text-slate-900">₹{course.price}</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Module Fee</p>
+                  <p className="text-4xl font-black text-slate-900 tracking-tighter">₹{course.price}</p>
                 </div>
               </div>
 
-              <form onSubmit={handleVerify} className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">UTR / Transaction ID</label>
+              <form onSubmit={handleVerify} className="space-y-5">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">UTR / Transaction ID</label>
                   <input 
                     type="text" 
                     required
-                    placeholder="Enter 12-digit UTR No."
-                    className="w-full px-4 py-4 bg-slate-50 border border-slate-200 font-bold text-slate-900 outline-none focus:border-blue-600 transition-all rounded-none"
+                    placeholder="Enter 12-digit UTR ID"
+                    className="w-full px-6 py-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-slate-900 outline-none focus:ring-4 focus:ring-blue-500/5 transition-all text-sm uppercase tracking-tighter"
                     value={utr}
                     onChange={(e) => setUtr(e.target.value)}
                   />
@@ -99,20 +98,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, course, on
                 <button 
                   type="submit" 
                   disabled={status === 'verifying'}
-                  className="w-full bg-slate-900 text-white py-5 font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-600 transition-all shadow-xl"
+                  className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-[13px] uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-blue-600 transition-all shadow-xl active:scale-[0.98]"
                 >
-                  {status === 'verifying' ? <Loader2 className="animate-spin" size={16}/> : <ShieldCheck size={16}/>}
-                  {status === 'verifying' ? 'Verifying with AI...' : 'Submit Transaction'}
+                  {status === 'verifying' ? <Loader2 className="animate-spin" size={20}/> : <ShieldCheck size={20}/>}
+                  {status === 'verifying' ? 'Verifying AI Sync...' : 'Claim Enrollment'}
                 </button>
               </form>
             </>
           )}
 
-          <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-3">
-             <div className="w-8 h-8 bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <Zap size={14} fill="currentColor" />
+          <div className="mt-10 pt-8 border-t border-slate-50 flex items-center gap-4">
+             <div className="w-10 h-10 bg-emerald-50 text-emerald-600 flex items-center justify-center rounded-xl shrink-0">
+                <Zap size={20} fill="currentColor" />
              </div>
-             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">Secured via Delta AI Gateway. Fake UTRs lead to account suspension.</p>
+             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">Secured via Delta AI Engine. Fraudulent UTR attempts result in immediate hardware ban.</p>
           </div>
         </div>
       </div>

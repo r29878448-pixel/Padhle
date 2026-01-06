@@ -1,5 +1,4 @@
-
-// Webhook deprecated. Use Admin Panel Manual Ingest.
+// Webhook service deprecated. Use Admin Module.
 export default async function handler(_req: any, res: any) {
-  return res.status(200).send('Webhook service deprecated.');
+  return res.status(200).send('Ingest service deprecated.');
 }

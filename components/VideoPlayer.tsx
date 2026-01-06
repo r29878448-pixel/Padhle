@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import Hls from 'hls.js';
 import { 
@@ -38,7 +37,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
     if (!videoUrl || typeof videoUrl !== 'string' || videoUrl.trim() === '') {
       setIsLoading(false);
       setPlayerMode('none');
-      setError("Resource link is currently unavailable.");
+      setError("Module link unavailable.");
       return;
     }
 
@@ -76,10 +75,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
     if (forceEmbed) {
         if (ytId) {
             setPlayerMode('youtube');
-            setProcessedUrl(`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&rel=0&modestbranding=1`);
+            setProcessedUrl(`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=0&rel=0&modestbranding=1`);
         } else if (vimeoId) {
             setPlayerMode('vimeo');
-            setProcessedUrl(`https://player.vimeo.com/video/${vimeoId}?autoplay=1&muted=1&title=0&byline=0&portrait=0`);
+            setProcessedUrl(`https://player.vimeo.com/video/${vimeoId}?autoplay=1&muted=0&title=0&byline=0&portrait=0`);
         } else {
             setPlayerMode('iframe');
             setProcessedUrl(cleanUrl);
@@ -90,11 +89,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
 
     if (ytId) {
       setPlayerMode('youtube');
-      setProcessedUrl(`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&rel=0&modestbranding=1`);
+      setProcessedUrl(`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=0&rel=0&modestbranding=1`);
       setIsLoading(false);
     } else if (vimeoId) {
       setPlayerMode('vimeo');
-      setProcessedUrl(`https://player.vimeo.com/video/${vimeoId}?autoplay=1&muted=1&title=0&byline=0&portrait=0`);
+      setProcessedUrl(`https://player.vimeo.com/video/${vimeoId}?autoplay=1&muted=0&title=0&byline=0&portrait=0`);
       setIsLoading(false);
     } else if (tgMatch) {
       setPlayerMode('telegram');
@@ -143,28 +142,28 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
   }, [playerMode, telegramPost]);
 
   return (
-    <div className="w-full space-y-4 animate-fadeIn">
-      <div className={`relative w-full ${playerMode === 'telegram' ? 'min-h-[400px] bg-white' : 'aspect-video bg-black'} border border-slate-900 overflow-hidden shadow-2xl group rounded-2xl`}>
+    <div className="w-full space-y-6 animate-study">
+      <div className={`relative w-full ${playerMode === 'telegram' ? 'min-h-[400px] bg-white' : 'aspect-video bg-black'} border border-slate-900 overflow-hidden shadow-2xl group rounded-[3rem]`}>
         {error && !isLoading && (
-          <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-10 text-center">
-             <AlertTriangle size={32} className="text-amber-500 mb-4" />
-             <p className="text-white text-lg font-black uppercase tracking-tight">{error}</p>
-             <button onClick={() => setForceEmbed(true)} className="mt-6 px-6 py-3 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-500">Switch to Embed Mode</button>
+          <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-12 text-center">
+             <AlertTriangle size={40} className="text-amber-500 mb-6" />
+             <p className="text-white text-xl font-black uppercase tracking-tight italic">{error}</p>
+             <button onClick={() => setForceEmbed(true)} className="mt-8 px-8 py-4 bg-blue-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-blue-500 rounded-2xl">Bypass Native Engine</button>
           </div>
         )}
 
         {isLoading && (
           <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center">
-            <Loader2 className="animate-spin text-blue-600 mb-4" size={32} />
-            <p className="text-white text-[9px] font-black uppercase tracking-widest">Securing Connection...</p>
+            <Loader2 className="animate-spin text-blue-600 mb-6" size={48} strokeWidth={1.5} />
+            <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.4em]">Establishing Secure Stream...</p>
           </div>
         )}
 
         {!error && !isLoading && (
           playerMode === 'native' ? (
-             <video ref={videoRef} className="w-full h-full object-contain" controls autoPlay playsInline onError={() => setError("Format failed in Native Player")} />
+             <video ref={videoRef} className="w-full h-full object-contain" controls autoPlay playsInline onError={() => setError("Format incompatible with Native Player")} />
           ) : playerMode === 'telegram' ? (
-             <div className="w-full h-full flex items-center justify-center p-4 bg-slate-50"><div id="telegram-embed-container" className="w-full max-w-md"></div></div>
+             <div className="w-full h-full flex items-center justify-center p-8 bg-slate-50"><div id="telegram-embed-container" className="w-full max-w-md"></div></div>
           ) : (
             <iframe 
               src={processedUrl} 
@@ -177,21 +176,21 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, title }) => {
         )}
       </div>
       
-      <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-3 bg-white border border-slate-200 shadow-sm gap-4 rounded-xl">
-         <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2 text-[9px] font-black text-slate-500 uppercase tracking-widest">
-               <ShieldCheck size={14} className="text-emerald-500"/> Secured Stream
+      <div className="flex flex-col sm:flex-row items-center justify-between px-8 py-4 bg-white border border-slate-100 shadow-sm gap-6 rounded-[2rem]">
+         <div className="flex items-center gap-8">
+            <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+               <ShieldCheck size={18} className="text-emerald-500"/> Alpha Stream
             </div>
-            <div className="flex items-center gap-2 text-[9px] font-black text-slate-500 uppercase tracking-widest">
-               <Monitor size={14} className="text-blue-600"/> {playerMode.toUpperCase()} Mode
+            <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+               <Monitor size={18} className="text-blue-600"/> {playerMode.toUpperCase()} Optimized
             </div>
          </div>
-         <div className="flex items-center gap-3">
-            <button onClick={() => setForceEmbed(!forceEmbed)} className={`text-[9px] font-black uppercase tracking-widest px-4 py-2 border rounded-lg transition-all ${forceEmbed ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'}`}>
-               {forceEmbed ? 'Switch Native' : 'Force Embed'}
+         <div className="flex items-center gap-4">
+            <button onClick={() => setForceEmbed(!forceEmbed)} className={`text-[10px] font-black uppercase tracking-widest px-6 py-3 border rounded-xl transition-all ${forceEmbed ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'}`}>
+               {forceEmbed ? 'Release Force' : 'Force Embed'}
             </button>
-            <button onClick={() => window.open(videoUrl, '_blank')} className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 transition-all flex items-center gap-2 rounded-lg">
-               Source <ExternalLink size={12}/>
+            <button onClick={() => window.open(videoUrl, '_blank')} className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-6 py-3 border border-slate-200 bg-white hover:bg-slate-50 transition-all flex items-center gap-3 rounded-xl">
+               External <ExternalLink size={16}/>
             </button>
          </div>
       </div>
