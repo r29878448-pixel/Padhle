@@ -30,6 +30,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, siteSettings
   const [activeTab, setActiveTab] = useState<'batches' | 'scraper' | 'pw' | 'watchdog' | 'config' | 'users'>('batches');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   
   // Watchdog States
   const [watchList, setWatchList] = useState<string[]>(JSON.parse(localStorage.getItem('portal_watch_list') || '[]'));
@@ -84,6 +85,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, siteSettings
     const newList = watchList.filter(u => u !== url);
     setWatchList(newList);
     localStorage.setItem('portal_watch_list', JSON.stringify(newList));
+  };
+
+  const handleDeleteCourse = async (courseId: string) => {
+    if (!window.confirm("Are you sure you want to delete this batch?")) return;
+    setDeletingId(courseId);
+    try {
+      await deleteCourseFromDB(courseId);
+    } catch (e) {
+      alert("Failed to delete batch.");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const handlePWSync = async () => {
@@ -147,7 +160,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, siteSettings
         <div className="flex bg-slate-900 p-1.5 border border-white/5 overflow-x-auto no-scrollbar rounded-2xl">
            <button onClick={() => setActiveTab('batches')} className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap rounded-xl transition-all ${activeTab === 'batches' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500'}`}>Batches</button>
            <button onClick={() => setActiveTab('watchdog')} className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap rounded-xl transition-all ${activeTab === 'watchdog' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500'}`}>Watchdog</button>
-           <button onClick={() => setActiveTab('pw')} className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap rounded-xl transition-all ${activeTab === 'pw' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500'}`}>PW Connect</button>
            <button onClick={() => setActiveTab('scraper')} className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap rounded-xl transition-all ${activeTab === 'scraper' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500'}`}>AI Scrape</button>
            <button onClick={() => setActiveTab('users')} className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap rounded-xl transition-all ${activeTab === 'users' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500'}`}>Students</button>
            {userRole === 'admin' && (
@@ -169,7 +181,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, siteSettings
                   <input 
                     value={newWatchUrl} 
                     onChange={e => setNewWatchUrl(e.target.value)} 
-                    placeholder="Add Delta/PW Batch URL to monitor..." 
+                    placeholder="Add Delta Study Batch URL to monitor..." 
                     className="flex-1 px-8 py-5 bg-slate-900 border border-white/5 rounded-2xl text-white outline-none focus:border-blue-500"
                   />
                   <button onClick={addToWatchList} className="bg-blue-600 text-white px-10 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-700">+ Add Source</button>
@@ -214,35 +226,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, siteSettings
           </div>
         )}
 
-        {activeTab === 'pw' && (
-          <div className="max-w-4xl space-y-10 animate-study">
-             <div className="pb-8 border-b border-white/5">
-               <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic flex items-center gap-4"><Zap size={32} className="text-blue-500 fill-blue-500"/> PW Legacy Sync</h2>
-            </div>
-            <div className="space-y-6">
-               <div className="space-y-2">
-                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Key size={14}/> PW Auth Token</label>
-                 <input 
-                  type="password"
-                  value={pwToken} 
-                  onChange={e => setPwToken(e.target.value)} 
-                  placeholder="Paste Bearer Token..." 
-                  className="w-full px-6 py-5 bg-slate-900 border border-white/5 rounded-2xl font-mono text-xs text-white outline-none" 
-                 />
-               </div>
-               <div className="space-y-2">
-                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Database size={14}/> Batch ID</label>
-                 <input 
-                  value={pwBatchId} 
-                  onChange={e => setPwBatchId(e.target.value)} 
-                  className="w-full px-6 py-5 bg-slate-900 border border-white/5 rounded-2xl font-mono text-xs text-white outline-none" 
-                 />
-               </div>
-               <button onClick={handlePWSync} className="w-full bg-blue-600 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-widest">Manual PW Pull</button>
-            </div>
-          </div>
-        )}
-
         {activeTab === 'scraper' && <SmartScraper />}
 
         {activeTab === 'batches' && (
@@ -258,7 +241,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, siteSettings
                     <h3 className="font-black text-white text-xl mb-8 line-clamp-2 uppercase tracking-tight italic leading-tight">{course.title || 'Untitled Batch'}</h3>
                     <div className="flex gap-4">
                       <button onClick={() => { setCurrentBatch(course); setIsModalOpen(true); }} className="flex-1 bg-white/5 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all">Studio</button>
-                      <button onClick={() => deleteCourseFromDB(course.id)} className="p-4 bg-red-500/10 text-red-400 hover:text-red-500 rounded-xl transition-all"><Trash2 size={20}/></button>
+                      <button 
+                        onClick={() => handleDeleteCourse(course.id)} 
+                        disabled={deletingId === course.id}
+                        className="p-4 bg-red-500/10 text-red-400 hover:text-red-500 rounded-xl transition-all disabled:opacity-50"
+                      >
+                        {deletingId === course.id ? <Loader2 className="animate-spin" size={20}/> : <Trash2 size={20}/>}
+                      </button>
                     </div>
                  </div>
                ))}

@@ -14,12 +14,12 @@ export const scrapeDeltaContent = async (url: string) => {
       },
       body: JSON.stringify({
         url: url,
-        formats: ['markdown'],
-        onlyMainContent: true,
-        waitFor: 5000,
+        formats: ['html'], // Changed to HTML to capture script tags and JSON data
+        onlyMainContent: false, // We need the script tags for ed-tech sites
+        waitFor: 3000,
         actions: [
-          { type: 'wait', selector: 'div' },
-          { type: 'scroll', direction: 'down', amount: 5000 }
+          { type: 'wait', selector: 'body' },
+          { type: 'scroll', direction: 'down', amount: 3000 }
         ]
       })
     });
@@ -30,12 +30,12 @@ export const scrapeDeltaContent = async (url: string) => {
     }
 
     const data = await response.json();
-    const markdown = data.data.markdown;
+    const html = data.data.html;
 
-    if (!markdown) throw new Error("Firecrawl returned empty document. The URL might be private or protected.");
+    if (!html) throw new Error("Firecrawl returned empty document. The URL might be private or blocked.");
 
-    // Use Gemini to structure the markdown data into our Portal Schema
-    return await parseScrapedContent(markdown, url);
+    // Use Gemini to structure the HTML data into our Portal Schema
+    return await parseScrapedContent(html, url);
   } catch (error: any) {
     console.error("Firecrawl Scrape Failed:", error);
     throw error;
