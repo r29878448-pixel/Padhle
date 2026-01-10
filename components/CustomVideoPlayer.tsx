@@ -3,22 +3,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import Hls from 'hls.js';
 import { 
   Play, Pause, Volume2, VolumeX, Maximize, Minimize, 
-  Loader2, Radio, SkipBack, SkipForward, Settings, Activity, RefreshCw
+  Loader2, Radio, Activity
 } from 'lucide-react';
 
 interface CustomVideoPlayerProps {
   videoUrl: string;
-  title: string;
 }
 
-const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }) => {
+const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [volume, setVolume] = useState(1);
+  const [volume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
@@ -126,11 +123,6 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
       <video 
         ref={videoRef}
         onClick={togglePlay}
-        onTimeUpdate={() => {
-          if (videoRef.current && !isLive) {
-            setProgress((videoRef.current.currentTime / videoRef.current.duration) * 100);
-          }
-        }}
         className="w-full h-full object-contain cursor-pointer"
         playsInline
         muted={isMuted}

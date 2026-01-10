@@ -12,7 +12,7 @@
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).send('Use POST');
   
-  const { auth_key, source_url } = req.body;
+  const { auth_key } = req.body;
   
   // Security Layer
   if (auth_key !== process.env.SYNC_SECRET) {

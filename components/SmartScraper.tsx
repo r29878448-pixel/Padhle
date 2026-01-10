@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Loader2, Save, Zap, Database, CheckCircle2, AlertCircle, Play, User as UserIcon, FileText, Globe, Layers, ArrowRight } from 'lucide-react';
+import { Search, Loader2, Save, Zap, Database, CheckCircle2, AlertCircle, User as UserIcon, Globe, Layers, ArrowRight } from 'lucide-react';
 import { scrapeDeltaContent } from '../services/firecrawlService';
 import { saveCourseToDB } from '../services/db';
 import { Course } from '../types';

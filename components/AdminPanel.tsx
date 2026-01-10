@@ -3,11 +3,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, Trash2, X, 
   Upload, LayoutDashboard, Layers, Folder,
-  Loader2, Database, Globe, Search, Link as LinkIcon, Key, Zap, RefreshCw, Eye, Play
+  Loader2, Database, Globe, Search, RefreshCw, Eye, Zap
 } from 'lucide-react';
 import { Course, Lecture, StaffMember, SiteSettings, Student, Chapter } from '../types';
 import SmartScraper from './SmartScraper';
-import { syncPWBatch } from '../services/pwService';
 import { runDeltaAutoSync, SyncLog } from '../services/automation';
 import { 
   subscribeToStaff, 
@@ -27,7 +26,7 @@ interface AdminPanelProps {
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, siteSettings, setSiteSettings }) => {
-  const [activeTab, setActiveTab] = useState<'batches' | 'scraper' | 'pw' | 'watchdog' | 'config' | 'users'>('batches');
+  const [activeTab, setActiveTab] = useState<'batches' | 'scraper' | 'watchdog' | 'config' | 'users'>('batches');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -36,11 +35,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, siteSettings
   const [watchList, setWatchList] = useState<string[]>(JSON.parse(localStorage.getItem('portal_watch_list') || '[]'));
   const [newWatchUrl, setNewWatchUrl] = useState('');
   const [watchLogs, setWatchLogs] = useState<SyncLog[]>([]);
-
-  // PW Sync States
-  const [pwToken, setPwToken] = useState(localStorage.getItem('pw_auth_token') || '');
-  const [pwBatchId, setPwBatchId] = useState('');
-  const [syncLogs, setSyncLogs] = useState<string[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -96,26 +90,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, siteSettings
       alert("Failed to delete batch.");
     } finally {
       setDeletingId(null);
-    }
-  };
-
-  const handlePWSync = async () => {
-    if (!pwToken || !pwBatchId) return alert("Enter Token & Batch ID");
-    localStorage.setItem('pw_auth_token', pwToken);
-    setSaveStatus('saving');
-    setSyncLogs(["Initiating handshake with PW API...", "Bypassing CORS filters..."]);
-    
-    try {
-      const course = await syncPWBatch(pwToken, pwBatchId);
-      setSyncLogs(prev => [...prev, `Found: ${course.title}`, `Mapping ${course.subjects.length} subjects...`]);
-      await saveCourseToDB(course);
-      setSyncLogs(prev => [...prev, "SUCCESS: Batch fully synchronized with high-res thumbnails."]);
-      setSaveStatus('success');
-      setTimeout(() => setSaveStatus('idle'), 2000);
-    } catch (e: any) {
-      setSyncLogs(prev => [...prev, `ERROR: ${e.message}`]);
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus('idle'), 3000);
     }
   };
 
@@ -210,6 +184,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ userRole, courses, siteSettings
 
                {watchLogs.length > 0 && (
                  <div className="p-10 bg-[#020617] rounded-[2.5rem] border border-white/5 space-y-4">
+                    {/* Fix: Added missing Zap icon import */}
                     <h4 className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-6 flex items-center gap-2"><Zap size={14}/> Sync Activity Engine</h4>
                     {watchLogs.map((log) => (
                       <div key={log.id} className="flex items-start gap-4 p-4 border-b border-white/5 last:border-0">

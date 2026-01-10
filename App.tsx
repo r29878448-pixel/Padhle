@@ -2,9 +2,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Home, BookOpen, User as UserIcon, 
-  Menu, ChevronRight, Loader2, Layers, Folder, Play, Bell, ChevronLeft,
-  Clock, Radio, FileText, Download, Target, Calendar,
-  RefreshCw, Zap, HelpCircle, ShieldCheck
+  Menu, ChevronRight, Loader2, Layers, Folder, Bell, ChevronLeft,
+  Clock, Radio, FileText, Download, Target,
+  RefreshCw, Zap
 } from 'lucide-react';
 import { Course, Lecture, Banner, SiteSettings } from './types';
 import { COURSES } from './constants';
@@ -367,7 +367,7 @@ const App: React.FC = () => {
                 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
                   <div className="lg:col-span-8 space-y-12">
-                    <CustomVideoPlayer videoUrl={selectedLecture.videoUrl} title={selectedLecture.title} />
+                    <CustomVideoPlayer videoUrl={selectedLecture.videoUrl} />
                     
                     <div className="bg-[#0f172a] p-12 rounded-[3rem] border border-white/5 shadow-sm">
                       <div className="mb-10">
