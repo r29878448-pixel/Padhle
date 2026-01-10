@@ -14,25 +14,25 @@ export const scrapeDeltaContent = async (url: string) => {
       },
       body: JSON.stringify({
         url: url,
-        formats: ['html'], // Changed to HTML to capture script tags and JSON data
-        onlyMainContent: false, // We need the script tags for ed-tech sites
-        waitFor: 3000,
+        formats: ['html'],
+        onlyMainContent: false,
+        waitFor: 5000, // Increased wait for heavy ed-tech pages
         actions: [
           { type: 'wait', selector: 'body' },
-          { type: 'scroll', direction: 'down', amount: 3000 }
+          { type: 'scroll', direction: 'down', amount: 5000 }
         ]
       })
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || `Firecrawl Error: ${response.status}`);
+      throw new Error(errorData.error || `Firecrawl Access Denied: ${response.status}`);
     }
 
     const data = await response.json();
     const html = data.data.html;
 
-    if (!html) throw new Error("Firecrawl returned empty document. The URL might be private or blocked.");
+    if (!html || html.length < 1000) throw new Error("Firecrawl returned insufficient data. The URL might be protected or private.");
 
     // Use Gemini to structure the HTML data into our Portal Schema
     return await parseScrapedContent(html, url);

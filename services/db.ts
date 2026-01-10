@@ -58,11 +58,15 @@ export const subscribeToCourses = (callback: (courses: Course[]) => void) => {
 };
 
 export const saveCourseToDB = async (course: Course) => {
-  await setDoc(doc(db, "courses", course.id), course);
+  // Ensure we use the course.id as the document ID
+  const docId = course.id || (course.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now());
+  await setDoc(doc(db, "courses", docId), { ...course, id: docId });
 };
 
 export const deleteCourseFromDB = async (courseId: string) => {
-  await deleteDoc(doc(db, "courses", courseId));
+  if (!courseId) return;
+  const docRef = doc(db, "courses", courseId);
+  await deleteDoc(docRef);
 };
 
 // --- USER & PROGRESS ---

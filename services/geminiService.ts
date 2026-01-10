@@ -1,37 +1,8 @@
 
 import { GoogleGenAI } from "@google/genai";
 import { Course } from "../types";
-import { TelegramPost } from "./db";
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-export const classifyContent = async (post: TelegramPost, courses: Course[]) => {
-  const ai = getAI();
-  const batchList = courses.map(c => ({ id: c.id, title: c.title }));
-  
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: [{
-        role: 'user',
-        parts: [{
-          text: `Match this educational content:
-          Title: ${post.title}
-          URL: ${post.url}
-          
-          Existing Batches: ${JSON.stringify(batchList)}`
-        }]
-      }],
-      config: {
-        systemInstruction: "Match content to courseId. Return JSON with courseId, subjectTitle, and chapterTitle.",
-        responseMimeType: "application/json"
-      }
-    });
-    return JSON.parse(response.text || "{}");
-  } catch (error) {
-    return null;
-  }
-};
 
 export const parseScrapedContent = async (html: string, url: string) => {
   const ai = getAI();
@@ -41,37 +12,40 @@ export const parseScrapedContent = async (html: string, url: string) => {
       contents: [{
         role: 'user',
         parts: [{
-          text: `DEEP ED-TECH DATA EXTRACTION - TARGET: Delta Study / PhysicsWallah
-          Source URL: ${url}
-          HTML Content: 
-          ${html.substring(0, 100000)}
-          
-          DIRECTIONS:
-          1. Extract the Batch Name, Instructor, and Thumbnail.
-          2. Delta Study often uses Next.js. Look for a large JSON string in script tags (id="__NEXT_DATA__").
-          3. Within that JSON, extract:
-             - Subjects (List of titles)
-             - For each Subject, get all Lectures.
-             - For each Lecture: Title, Video URL (usually .m3u8 or vimeo), Thumbnail, and Resources (PDFs/DPPs).
-          
+          text: `ED-TECH CRAWLER: DELTA STUDY ARCHITECTURE
+          Target URL: ${url}
+          HTML Content: ${html.substring(0, 200000)}
+
+          CRITICAL EXTRACTION STEPS:
+          1. Locate <script id="__NEXT_DATA__" type="application/json">. This contains the 'props.pageProps' object with the full batch data.
+          2. From 'pageProps', extract:
+             - Batch Name (title)
+             - Batch Thumbnail (banner/image)
+             - Teacher Name
+             - All Subjects (subjects array)
+             - Inside each Subject, find 'lectures' or 'content'.
+             - For each Lecture: 'topic', 'videoUrl' (or 'videoResource'), 'thumbnail', and 'attachments' (PDFs for Notes/DPP).
+          3. Format the result into the standard Portal JSON below.
+          4. If __NEXT_DATA__ is missing, fallback to parsing the visible DOM for class names like 'lecture-card', 'subject-list', etc.
+
           JSON SCHEMA:
           {
-            "title": "Batch Title",
-            "instructor": "Name",
-            "thumbnail": "High-res URL",
-            "category": "JEE" | "NEET" | "Class 10th" | "Class 12th",
+            "title": "Full Batch Name",
+            "instructor": "Teacher Name",
+            "thumbnail": "High-Res Image URL",
+            "category": "JEE" | "NEET" | "Foundation" | "Class 10th",
             "subjects": [
               {
-                "title": "Subject Name",
+                "title": "Subject Title (e.g. Physics)",
                 "lectures": [
                   { 
-                    "title": "Lecture Title", 
-                    "url": "Video Stream URL", 
-                    "thumbnail": "Lecture Thumb URL",
-                    "duration": "Time or 'LIVE'",
+                    "title": "Lecture Name (e.g. L-01 Electrostatics)", 
+                    "url": "Direct Video Link or HLS .m3u8", 
+                    "thumbnail": "Lecture-specific Thumbnail",
+                    "duration": "LIVE" | "Recording",
                     "resources": [
-                      { "title": "Notes", "url": "PDF Link", "type": "pdf" },
-                      { "title": "DPP", "url": "PDF Link", "type": "dpp" }
+                      { "title": "Lecture Notes", "url": "PDF URL", "type": "pdf" },
+                      { "title": "DPP Sheet", "url": "PDF URL", "type": "dpp" }
                     ]
                   }
                 ]
@@ -81,13 +55,17 @@ export const parseScrapedContent = async (html: string, url: string) => {
         }]
       }],
       config: {
-        systemInstruction: "You are a specialized ed-tech crawler. Extract precise batch data. Return ONLY JSON.",
+        systemInstruction: "You are an expert at reverse-engineering Ed-Tech JSON states from HTML. Extract precise video and PDF links.",
         responseMimeType: "application/json",
       },
     });
-    return JSON.parse(response.text || "{}");
+    
+    const text = response.text || "{}";
+    const parsed = JSON.parse(text);
+    if (parsed) parsed.sourceUrl = url;
+    return parsed;
   } catch (error) {
-    console.error("Deep Extraction Error:", error);
+    console.error("Gemini Deep Extraction Failed:", error);
     return null;
   }
 };
@@ -97,7 +75,7 @@ export const verifyUTR = async (utr: string): Promise<boolean> => {
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: [{ role: 'user', parts: [{ text: `Verify UTR: ${utr}` }] }],
-    config: { systemInstruction: "Return 'VALID' for 12-digit transaction IDs." },
+    config: { systemInstruction: "Return 'VALID' if the UTR matches a 12-digit transaction format." },
   });
   return response.text?.includes('VALID') || false;
 };
