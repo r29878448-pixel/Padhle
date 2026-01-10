@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Search, Loader2, Save, Zap, Database, CheckCircle2, AlertCircle, User as UserIcon, Globe, Layers, ArrowRight } from 'lucide-react';
 import { scrapeDeltaContent } from '../services/firecrawlService';
 import { saveCourseToDB } from '../services/db';
-import { Course } from '../types';
+import { Course, Subject, Resource } from '../types';
 
 const SmartScraper: React.FC = () => {
   const [url, setUrl] = useState('');
@@ -22,7 +22,9 @@ const SmartScraper: React.FC = () => {
     
     try {
       const data = await scrapeDeltaContent(url);
-      if (!data || !data.title) throw new Error("Batch data extraction failed. The site might be blocking AI crawlers or the URL is invalid.");
+      if (!data || !data.title) {
+        throw new Error("Batch extraction failed. Structure not identified by AI.");
+      }
       setResult(data);
     } catch (e: any) {
       setError(e.message || "Deep Scraper encountered a synchronization error.");
@@ -35,45 +37,56 @@ const SmartScraper: React.FC = () => {
     if (!result) return;
     setIsSaving(true);
     try {
-      const courseId = (result.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now());
+      const timestamp = Date.now();
+      const courseId = (result.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + timestamp);
       
+      const subjects: Subject[] = (result.subjects || []).map((s: any, sIdx: number) => ({
+        id: `sub-${sIdx}-${timestamp}`,
+        title: s.title || 'General Subject',
+        chapters: [
+          {
+            id: `chap-${sIdx}-${timestamp}`,
+            title: "Batch Curriculum",
+            lectures: (s.lectures || []).map((l: any, lIdx: number) => ({
+              id: `lec-${sIdx}-${lIdx}-${timestamp}`,
+              title: l.title || `Lecture ${lIdx + 1}`,
+              videoUrl: l.url || '',
+              thumbnail: l.thumbnail || result.thumbnail || '',
+              duration: l.duration || 'Recording',
+              description: l.description || `Learning content for ${s.title}`,
+              resources: (l.resources || []).map((r: any, rIdx: number): Resource => ({
+                id: `res-${sIdx}-${lIdx}-${rIdx}-${timestamp}`,
+                title: r.title || 'Resource',
+                url: r.url || '',
+                type: (r.type === 'dpp' || r.type === 'pdf') ? r.type : 'pdf'
+              }))
+            }))
+          }
+        ]
+      }));
+
       const newBatch: Course = {
         id: courseId,
         title: result.title,
-        description: result.description || `Premium Batch synced from Delta Source.`,
+        description: result.description || `Premium Batch synced from source.`,
         instructor: result.instructor || "Portal Faculty",
         image: result.thumbnail || "https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&q=80&w=1500",
         price: 0,
         rating: 5.0,
         students: 12000,
         category: result.category || "General",
-        subjects: result.subjects.map((s: any, sIdx: number) => ({
-          id: `sub-${sIdx}-${Date.now()}`,
-          title: s.title,
-          chapters: [
-            {
-              id: `chap-${sIdx}-${Date.now()}`,
-              title: "Imported Curriculum",
-              lectures: s.lectures.map((l: any, lIdx: number) => ({
-                id: `lec-${lIdx}-${Date.now()}`,
-                title: l.title,
-                videoUrl: l.url,
-                thumbnail: l.thumbnail || result.thumbnail,
-                duration: l.duration || 'Recording',
-                description: `Live session from ${result.title}`,
-                resources: l.resources || []
-              }))
-            }
-          ]
-        })),
-        shortLink: result.sourceUrl // For Watchdog auto-sync
+        subjects: subjects,
+        shortLink: result.sourceUrl
       };
 
+      console.log("[Scraper] Saving New Batch:", newBatch);
       await saveCourseToDB(newBatch);
+      
       setSuccess("Batch successfully added to portal library!");
       setResult(null);
       setUrl('');
     } catch (e) {
+      console.error("Save Error:", e);
       setError("Failed to save batch to cloud database.");
     } finally {
       setIsSaving(false);
@@ -90,7 +103,7 @@ const SmartScraper: React.FC = () => {
             <Zap className="text-blue-500 fill-blue-500" size={36} /> Batch Ingestor
           </h3>
           <p className="text-slate-400 text-[11px] font-black uppercase tracking-[0.3em] mt-3">
-            Delta Sync Engine v3.0 | Deep Extraction Protocol
+            Alpha Sync Engine v4.0 | Deep Protocol
           </p>
         </div>
 
@@ -101,7 +114,7 @@ const SmartScraper: React.FC = () => {
               <input 
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="Paste Delta Study URL (e.g. deltastudy.site/study-v2/batches/...)" 
+                placeholder="Paste Source URL..." 
                 className="w-full pl-20 pr-8 py-7 bg-[#1e293b] border border-white/5 rounded-[2.5rem] font-bold text-sm text-white outline-none focus:border-blue-500 transition-all shadow-inner"
               />
             </div>
@@ -117,7 +130,7 @@ const SmartScraper: React.FC = () => {
 
           <div className="p-6 bg-blue-500/5 border border-blue-500/10 rounded-3xl flex items-center gap-4">
              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Optimized for: deltastudy.site batches</p>
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Targeting source JSON states & curriculum blobs</p>
           </div>
         </div>
 
@@ -149,7 +162,7 @@ const SmartScraper: React.FC = () => {
                     <UserIcon size={18} className="text-blue-500" /> {result.instructor}
                   </div>
                   <div className="flex items-center gap-4 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
-                    <Layers size={18} className="text-blue-500" /> {result.subjects?.length || 0} Subjects Found
+                    <Layers size={18} className="text-blue-500" /> {result.subjects?.length || 0} Subjects Identified
                   </div>
                 </div>
                 <button 
@@ -177,7 +190,7 @@ const SmartScraper: React.FC = () => {
                       <p className="text-2xl font-black text-white uppercase italic tracking-tighter">{sub.title}</p>
                     </div>
                     <div className="grid grid-cols-1 gap-4">
-                      {sub.lectures?.map((lec: any, lIdx: number) => (
+                      {(sub.lectures || []).map((lec: any, lIdx: number) => (
                         <div key={lIdx} className="p-6 bg-[#1e293b]/40 border border-white/5 rounded-[2rem] flex items-center justify-between group">
                            <div className="flex items-center gap-8 min-w-0">
                               <div className="w-24 h-14 bg-black rounded-xl overflow-hidden shrink-0 border border-white/5">
@@ -186,14 +199,15 @@ const SmartScraper: React.FC = () => {
                               <div className="text-left">
                                 <p className="text-[12px] font-black text-white uppercase tracking-tight truncate leading-none mb-2">{lec.title}</p>
                                 <div className="flex items-center gap-6">
-                                  <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">Video: {lec.url ? 'FOUND' : 'NULL'}</span>
-                                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{lec.resources?.length || 0} Attachments</span>
+                                  <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">Status: {lec.url ? 'SYNCED' : 'PENDING'}</span>
+                                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{lec.resources?.length || 0} Assets</span>
                                 </div>
                               </div>
                            </div>
                            <ArrowRight size={20} className="text-slate-800" />
                         </div>
                       ))}
+                      {!sub.lectures?.length && <p className="text-slate-500 italic text-xs ml-8">No lectures found in this section.</p>}
                     </div>
                   </div>
                 ))}

@@ -47,8 +47,10 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl }) => {
           lowLatencyMode: true,
           liveSyncDuration: 3, // Target 3s behind live
           liveMaxLatencyDuration: 6, // Max allowed drift before hard seek
-          maxLiveSyncPlaybackRate: 1.1, // Speed up to catch up
+          maxLiveSyncPlaybackRate: 1.15, // Faster catch-up
           liveSyncDurationCount: 3,
+          backBufferLength: 30,
+          liveDurationInfinity: true,
         });
         
         hls.loadSource(videoUrl);
@@ -60,29 +62,41 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl }) => {
         });
 
         hls.on(Hls.Events.FRAG_LOADED, () => {
-          if (hls.liveSyncPosition) {
+          if (hls.liveSyncPosition !== null) {
             const currentLatency = hls.liveSyncPosition - video.currentTime;
             setLatency(Math.max(0, Math.floor(currentLatency)));
             
-            // Auto-sync if latency > 5 seconds
-            if (currentLatency > 5) {
+            // Aggressive Sync: If drift > 4.5s, force seek to 3s mark
+            if (currentLatency > 4.5) {
+              console.log("[Player] Drift detected. Synchronizing live edge...");
               video.currentTime = hls.liveSyncPosition - 3;
             }
           }
         });
 
         hls.on(Hls.Events.ERROR, (_, data) => {
-          if (data.fatal) setError("Live session server connection failed.");
+          if (data.fatal) {
+            console.error("[HLS] Fatal Error:", data);
+            setError("Live session synchronization failed.");
+          }
         });
         
         hlsRef.current = hls;
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Native HLS for Safari
         video.src = videoUrl;
-        video.addEventListener('loadedmetadata', () => setIsLoading(false));
+        video.addEventListener('loadedmetadata', () => {
+          setIsLoading(false);
+          // Try to seek to live edge if possible (Safari specific)
+          if (video.seekable.length > 0) {
+            video.currentTime = video.seekable.end(video.seekable.length - 1) - 3;
+          }
+        });
       } else {
-        setError("Browser mismatch for high-end playback.");
+        setError("Browser does not support HLS playback.");
       }
     } else {
+      // Standard video
       video.src = videoUrl;
       video.addEventListener('loadeddata', () => setIsLoading(false));
       video.addEventListener('error', () => setError("Failed to synchronize session."));
@@ -131,10 +145,10 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl }) => {
       {isLive && (
         <div className="absolute top-8 left-8 z-40 flex items-center gap-3">
            <div className="bg-red-600 text-white px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-2xl live-pulse">
-              <Radio size={14} strokeWidth={3} /> LIVE SESSION
+              <Radio size={14} strokeWidth={3} /> LIVE BROADCAST
            </div>
            <div className="bg-black/40 backdrop-blur-md text-white/80 px-4 py-2 rounded-2xl text-[8px] font-black uppercase tracking-widest border border-white/10 flex items-center gap-2">
-              <Activity size={12}/> {latency}s Delay
+              <Activity size={12}/> {latency}s Lag
            </div>
         </div>
       )}

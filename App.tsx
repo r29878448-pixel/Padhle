@@ -46,11 +46,11 @@ const App: React.FC = () => {
   const [lastSync, setLastSync] = useState<Date>(new Date());
 
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({ 
-    appName: 'Delta Study', 
-    botName: 'Delta AI', 
+    appName: 'Study Portal', 
+    botName: 'Study AI', 
     shortenerUrl: '', 
     shortenerApiKey: '',
-    adminEmail: 'admin@deltastudy.com'
+    adminEmail: 'admin@studyportal.com'
   });
 
   const fetchData = useCallback(() => {
@@ -95,7 +95,7 @@ const App: React.FC = () => {
       await runDeltaAutoSync(course.shortLink, courses, (log) => {
         console.log(`Sync Log: ${log.message}`);
       });
-      alert("Batch successfully synchronized with Delta Source.");
+      alert("Batch successfully synchronized with source.");
     } catch (e) {
       alert("Sync failed. Source server might be down.");
     } finally {
@@ -131,10 +131,10 @@ const App: React.FC = () => {
         </div>
         <div className="max-w-md w-full space-y-12 animate-delta relative z-10">
           <div className="w-24 h-24 bg-blue-600 rounded-[2.5rem] flex items-center justify-center text-white font-black text-4xl mx-auto shadow-2xl shadow-blue-500/40">
-            {siteSettings.appName?.charAt(0) || 'D'}
+            {siteSettings.appName?.charAt(0) || 'S'}
           </div>
           <div className="space-y-4">
-            <h1 className="text-5xl font-black text-white tracking-tighter uppercase italic">{siteSettings.appName || 'Delta Study'}</h1>
+            <h1 className="text-5xl font-black text-white tracking-tighter uppercase italic">{siteSettings.appName || 'Study Portal'}</h1>
             <p className="text-blue-500 font-bold uppercase tracking-widest text-[9px]">Alpha Learning Portal</p>
           </div>
           <button onClick={() => setIsAuthModalOpen(true)} className="w-full bg-blue-600 text-white py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3">
@@ -152,14 +152,14 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#020617] flex flex-col md:flex-row font-sans text-slate-100">
-      {/* Delta Sidebar */}
+      {/* Sidebar */}
       <aside className={`fixed md:sticky top-0 h-screen z-[150] w-72 bg-[#0f172a] border-r border-white/5 flex flex-col transition-transform duration-500 md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-10 border-b border-white/5 flex items-center gap-4 cursor-pointer" onClick={() => setActiveView('home')}>
           <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg">
-            {siteSettings.appName?.charAt(0) || 'D'}
+            {siteSettings.appName?.charAt(0) || 'S'}
           </div>
           <div>
-            <span className="text-lg font-black text-white uppercase italic tracking-tighter leading-none block">{siteSettings.appName || 'Delta Study'}</span>
+            <span className="text-lg font-black text-white uppercase italic tracking-tighter leading-none block">{siteSettings.appName || 'Study Portal'}</span>
             <span className="text-[7px] font-black text-blue-500 uppercase tracking-widest block mt-1.5">Alpha Platform</span>
           </div>
         </div>
@@ -213,7 +213,7 @@ const App: React.FC = () => {
         <main className="p-6 md:p-12 max-w-7xl mx-auto w-full">
            {activeView === 'home' && (
               <div className="space-y-16 animate-delta">
-                 {/* Delta Hero */}
+                 {/* Hero */}
                  <div className="relative rounded-[3.5rem] overflow-hidden shadow-2xl bg-slate-950 h-72 md:h-[32rem] group border border-white/5">
                     <img alt="Hero" src={banners[0]?.imageUrl || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=1200"} className="w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-1000" />
                     <div className="absolute inset-0 flex flex-col justify-center px-10 md:px-24 bg-gradient-to-r from-[#020617] via-transparent to-transparent">
@@ -239,7 +239,7 @@ const App: React.FC = () => {
                     </div>
                  </div>
 
-                 {/* Delta Batches */}
+                 {/* Batches */}
                  <section className="space-y-12">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
                        {filteredCourses.map(course => (
