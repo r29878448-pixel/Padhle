@@ -1,52 +1,59 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   font-family: 'Inter', sans-serif;
-  background-color: #f8fafc;
+  --delta-primary: #2563eb;
+  --delta-dark: #020617;
+  --delta-card: #0f172a;
 }
 
 body {
-  color: #0f172a;
-  background-color: #f8fafc;
+  color: #f8fafc;
+  background-color: var(--delta-dark);
   -webkit-tap-highlight-color: transparent;
   scroll-behavior: smooth;
 }
 
-/* Study Portal Premium Components */
-.study-card {
-  @apply bg-white border border-slate-100 rounded-[2.5rem] transition-all duration-500 hover:shadow-[0_40px_80px_-15px_rgba(37,99,235,0.08)] hover:-translate-y-2 overflow-hidden;
+/* Delta UI Components */
+.delta-card {
+  @apply bg-[#0f172a] border border-white/5 rounded-[2rem] transition-all duration-500 hover:shadow-[0_20px_50px_rgba(37,99,235,0.15)] hover:border-blue-500/30 overflow-hidden;
 }
 
-.study-glass {
-  @apply bg-white/80 backdrop-blur-2xl border-b border-slate-100 sticky top-0 z-[100];
+.delta-glass {
+  @apply bg-[#020617]/80 backdrop-blur-2xl border-b border-white/5 sticky top-0 z-[100];
+}
+
+.delta-gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400 font-black;
 }
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 
-@keyframes pulse-live {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+@keyframes delta-pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
 }
 
-.live-badge {
-  @apply bg-red-600 text-white px-3 py-1 rounded-lg font-black text-[8px] uppercase tracking-tighter;
-  animation: pulse-live 2s infinite;
+.live-indicator {
+  @apply bg-blue-600 text-white px-3 py-1 rounded-full font-black text-[8px] uppercase tracking-widest;
+  animation: delta-pulse 2s infinite;
 }
 
-@keyframes study-reveal {
-  from { opacity: 0; transform: translateY(30px); }
+@keyframes delta-reveal {
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-study {
-  animation: study-reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-delta {
+  animation: delta-reveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.segment-btn {
-  @apply px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all whitespace-nowrap border-2;
+.delta-input {
+  @apply w-full bg-[#1e293b] border border-white/10 rounded-2xl px-6 py-4 text-white font-medium outline-none focus:border-blue-500/50 transition-all;
 }

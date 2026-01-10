@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Hls from 'hls.js';
 import { 
   Play, Pause, Volume2, VolumeX, Maximize, Minimize, 
-  Loader2, Radio, SkipBack, SkipForward, Settings, Activity
+  Loader2, Radio, SkipBack, SkipForward, Settings, Activity, RefreshCw
 } from 'lucide-react';
 
 interface CustomVideoPlayerProps {
@@ -24,6 +24,7 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
   const [isLoading, setIsLoading] = useState(true);
   const [isLive, setIsLive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [latency, setLatency] = useState<number>(0);
   const hlsRef = useRef<Hls | null>(null);
   const controlsTimeoutRef = useRef<number | null>(null);
 
@@ -47,18 +48,37 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
         const hls = new Hls({
           enableWorker: true,
           lowLatencyMode: true,
-          backBufferLength: 60,
-          liveSyncDuration: 3
+          liveSyncDuration: 3, // Aggressive 3s sync
+          liveMaxLatencyDuration: 6, // Max drift before jumping
+          maxLiveSyncPlaybackRate: 1.1, // Speed up slightly to catch up
+          liveSyncDurationCount: 3,
         });
+        
         hls.loadSource(videoUrl);
         hls.attachMedia(video);
+        
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setIsLoading(false);
           video.play().catch(() => setIsPlaying(false));
         });
+
+        hls.on(Hls.Events.LEVEL_LOADED, (_, data) => {
+          if (data.details.live) {
+            setIsLive(true);
+          }
+        });
+
+        hls.on(Hls.Events.FRAG_LOADED, () => {
+           if (hls.liveSyncPosition) {
+             const currentLatency = hls.liveSyncPosition - video.currentTime;
+             setLatency(Math.max(0, Math.floor(currentLatency)));
+           }
+        });
+
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (data.fatal) setError("Live session server connection failed.");
         });
+        
         hlsRef.current = hls;
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = videoUrl;
@@ -76,6 +96,15 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
       if (hlsRef.current) hlsRef.current.destroy();
     };
   }, [videoUrl]);
+
+  const syncToLive = () => {
+    if (hlsRef.current && hlsRef.current.liveSyncPosition) {
+      if (videoRef.current) {
+        videoRef.current.currentTime = hlsRef.current.liveSyncPosition;
+        videoRef.current.play();
+      }
+    }
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -154,8 +183,16 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoUrl, title }
               <Radio size={14} strokeWidth={3} /> LIVE SESSION
            </div>
            <div className="bg-black/40 backdrop-blur-md text-white/80 px-4 py-2 rounded-2xl text-[8px] font-black uppercase tracking-widest border border-white/10 flex items-center gap-2">
-              <Activity size={12}/> Low Latency
+              <Activity size={12}/> Latency: {latency}s
            </div>
+           {latency > 5 && (
+             <button 
+               onClick={syncToLive}
+               className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-2xl text-[8px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl animate-delta"
+             >
+               <RefreshCw size={12} className="animate-spin" /> Sync to Live
+             </button>
+           )}
         </div>
       )}
 

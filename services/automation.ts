@@ -1,86 +1,82 @@
 
-import { classifyContent } from './geminiService';
+import { scrapeDeltaContent } from './firecrawlService';
 import { saveCourseToDB, markPostAsIngested, TelegramPost } from './db';
 import { Course, Subject, Chapter, Lecture } from '../types';
 
 export interface SyncLog {
   id: string;
   itemTitle: string;
-  status: 'processing' | 'success' | 'failed';
+  status: 'processing' | 'success' | 'failed' | 'idle';
   message: string;
 }
 
-export const runAIAutomation = async (
-  pendingItems: TelegramPost[], 
-  courses: Course[],
+/**
+ * Monitors a specific Delta Study URL for new content.
+ * If found, merges it into the existing database entry.
+ */
+export const runDeltaAutoSync = async (
+  watchUrl: string,
+  existingCourses: Course[],
   onProgress: (log: SyncLog) => void
 ) => {
-  let successCount = 0;
+  const logId = Math.random().toString(36).substr(2, 9);
+  onProgress({ id: logId, itemTitle: watchUrl, status: 'processing', message: 'Firecrawl is checking Delta Source...' });
 
-  for (const item of pendingItems) {
-    if (item.isIngested) continue;
+  try {
+    // 1. Scrape live content
+    const scraped = await scrapeDeltaContent(watchUrl);
+    if (!scraped || !scraped.title) throw new Error("Could not parse Delta source.");
 
-    const logId = Math.random().toString(36).substr(2, 9);
-    onProgress({ id: logId, itemTitle: item.title, status: 'processing', message: 'AI is analyzing content...' });
+    // 2. Find matching course in our DB
+    const targetCourse = existingCourses.find(c => 
+      c.title.toLowerCase().trim() === scraped.title.toLowerCase().trim()
+    );
 
-    try {
-      const mapping = await classifyContent(item, courses);
-      
-      if (!mapping || !mapping.courseId) {
-        onProgress({ id: logId, itemTitle: item.title, status: 'failed', message: 'AI could not match this to any Batch.' });
-        continue;
-      }
-
-      const targetCourse = courses.find(c => c.id === mapping.courseId);
-      if (!targetCourse) {
-        onProgress({ id: logId, itemTitle: item.title, status: 'failed', message: 'Matched Batch ID no longer exists.' });
-        continue;
-      }
-
-      // Clone course to avoid mutation issues
-      const updatedCourse = JSON.parse(JSON.stringify(targetCourse));
-      
-      // Find or create Subject
-      let subject = updatedCourse.subjects.find((s: Subject) => 
-        s.title.toLowerCase().includes(mapping.subjectTitle.toLowerCase())
-      );
-      if (!subject) {
-        subject = { id: `sub-${Date.now()}`, title: mapping.subjectTitle, chapters: [] };
-        updatedCourse.subjects.push(subject);
-      }
-
-      // Find or create Chapter
-      let chapter = subject.chapters.find((c: Chapter) => 
-        c.title.toLowerCase().includes(mapping.chapterTitle.toLowerCase())
-      );
-      if (!chapter) {
-        chapter = { id: `ch-${Date.now()}`, title: mapping.chapterTitle, lectures: [] };
-        subject.chapters.push(chapter);
-      }
-
-      // Add as Lecture
-      const newLecture: Lecture = {
-        id: `lec-${Date.now()}`,
-        title: item.title,
-        videoUrl: item.url,
-        duration: 'Sync Added',
-        description: 'Automatically added via AI Automation.',
-        resources: []
-      };
-      chapter.lectures.push(newLecture);
-
-      // Save to DB
-      await saveCourseToDB(updatedCourse);
-      await markPostAsIngested(item.id);
-
-      successCount++;
-      onProgress({ id: logId, itemTitle: item.title, status: 'success', message: `Added to ${updatedCourse.title} > ${subject.title}` });
-
-    } catch (error) {
-      console.error("Automation Error for item:", item.title, error);
-      onProgress({ id: logId, itemTitle: item.title, status: 'failed', message: 'System error during ingestion.' });
+    if (!targetCourse) {
+      onProgress({ id: logId, itemTitle: scraped.title, status: 'failed', message: 'No matching Batch found in portal. Import it manually once first.' });
+      return false;
     }
-  }
 
-  return successCount;
+    // 3. Compare hierarchy
+    let newLecturesFound = 0;
+    const updatedCourse = JSON.parse(JSON.stringify(targetCourse));
+
+    scraped.subjects.forEach((sScraped: any) => {
+      let sTarget = updatedCourse.subjects.find((s: any) => s.title === sScraped.title);
+      if (!sTarget) {
+        sTarget = { id: `sub-${Date.now()}`, title: sScraped.title, chapters: [{ id: `ch-${Date.now()}`, title: 'Course Content', lectures: [] }] };
+        updatedCourse.subjects.push(sTarget);
+      }
+
+      const chapter = sTarget.chapters[0];
+      sScraped.lectures.forEach((lScraped: any) => {
+        const exists = chapter.lectures.some((l: any) => l.title === lScraped.title);
+        if (!exists) {
+          chapter.lectures.push({
+            id: `lec-auto-${Date.now()}-${newLecturesFound}`,
+            title: lScraped.title,
+            videoUrl: lScraped.url,
+            thumbnail: lScraped.thumbnail || updatedCourse.image,
+            duration: lScraped.duration,
+            description: "Automatically Ingested by Watchdog.",
+            resources: lScraped.resources || []
+          });
+          newLecturesFound++;
+        }
+      });
+    });
+
+    if (newLecturesFound > 0) {
+      await saveCourseToDB(updatedCourse);
+      onProgress({ id: logId, itemTitle: scraped.title, status: 'success', message: `Synced ${newLecturesFound} new lectures!` });
+      return true;
+    } else {
+      onProgress({ id: logId, itemTitle: scraped.title, status: 'idle', message: 'No new lectures found. Up to date.' });
+      return false;
+    }
+
+  } catch (error: any) {
+    onProgress({ id: logId, itemTitle: watchUrl, status: 'failed', message: error.message });
+    return false;
+  }
 };
